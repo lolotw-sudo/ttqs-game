@@ -106,7 +106,7 @@ const EVIDENCE_TYPES = [
   // ── P 課前規劃 ──────────────────────────────────────────
   {
     id: 'website',      name: '學院官網公告',       icon: '🌐', difficulty: 2, maps: [1, 2],
-    unit: '培訓',
+    unit: '培發',
     desc: '課程揭露（EDM、官網、公佈欄、教學網、開課說明）；AI 課程推薦模組亮點',
   },
   {
