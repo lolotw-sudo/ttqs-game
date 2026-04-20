@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>TTQS 任務闖關</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #14142b;
+    background-image:
+      radial-gradient(circle at 20% 10%, #1f1f3d 0%, transparent 50%),
+      radial-gradient(circle at 80% 90%, #2a1f3d 0%, transparent 55%);
+    color: #f4f4ff;
+    font-family: 'DotGothic16', 'Noto Sans TC', monospace;
+    min-height: 100vh;
+    image-rendering: pixelated;
+  }
+  button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #1f1f3d; }
+  ::-webkit-scrollbar-thumb { background: #46468a; border: 2px solid #14142b; }
+
+  /* Keyframes */
+  @keyframes popbounce {
+    0%   { transform: scale(0.2); opacity: 0; }
+    40%  { transform: scale(1.25); opacity: 1; }
+    70%  { transform: scale(0.92); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideUp {
+    0%   { transform: translateY(24px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes float {
+    0%   { transform: translate(0, 0) scale(0.4); opacity: 0; }
+    20%  { opacity: 1; }
+    100% { transform: translate(var(--drift, 0), -220px) scale(1); opacity: 0; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* Tweaks panel */
+  .tweaks-panel {
+    position: fixed; right: 16px; bottom: 16px; z-index: 200;
+    background: #1f1f3d; border: 3px solid #000;
+    box-shadow: 4px 4px 0 0 #0a0a1a;
+    padding: 14px; width: 260px;
+    font-family: 'DotGothic16', monospace;
+    color: #f4f4ff;
+  }
+  .tweaks-panel h3 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px; margin: 0 0 10px; color: #ffd23f;
+    letter-spacing: 1px;
+  }
+  .tweaks-panel label {
+    display: block; font-size: 13px; margin-top: 8px;
+  }
+  .tweaks-panel select, .tweaks-panel input[type="range"] {
+    width: 100%; margin-top: 4px;
+    background: #14142b; color: #f4f4ff;
+    border: 2px solid #46468a; padding: 4px;
+    font-family: inherit;
+  }
+  .tweak-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 8px; gap: 8px;
+  }
+  .tweak-btn {
+    background: #3b3b72; color: #f4f4ff;
+    border: 2px solid #000; padding: 5px 9px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="./app/data.jsx"></script>
+  <script type="text/babel" src="./app/components.jsx"></script>
+  <script type="text/babel" src="./app/screens/Map.jsx"></script>
+  <script type="text/babel" src="./app/screens/Upload.jsx"></script>
+  <script type="text/babel" src="./app/screens/Celebration.jsx"></script>
+  <script type="text/babel" src="./app/screens/Achievements.jsx"></script>
+  <script type="text/babel" src="./app/screens/Profile.jsx"></script>
+  <script type="text/babel" src="./app/screens/TeamSelect.jsx"></script>
+  <script type="text/babel" src="./app/screens/Landing.jsx"></script>
+  <script type="text/babel" src="./app/screens/TeamReport.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // Tweakable defaults
+    const TWEAKS_DEFAULT = /*EDITMODE-BEGIN*/{
+      "scanlines": false,
+      "soundHints": true,
+      "showTitle": true,
+      "bgIntensity": 50
+    }/*EDITMODE-END*/;
+
+    const PLAYERS_KEY = 'ttqs_players_v1';
+    const LEGACY_KEY  = 'ttqs_quest_state_v2';
+
+    function loadPlayers() {
+      try {
+        const raw = localStorage.getItem(PLAYERS_KEY);
+        if (raw) return JSON.parse(raw);
+        // migrate legacy single-player save
+        const legacy = localStorage.getItem(LEGACY_KEY);
+        if (legacy) {
+          const p = JSON.parse(legacy);
+          if (p?.playerName && p?.team) {
+            return [{
+              id: Date.now().toString(),
+              name: p.playerName,
+              team: p.team,
+              uploads: p.uploads || [],
+              lastScreen: p.screen || 'map',
+            }];
+          }
+        }
+      } catch {}
+      return [];
+    }
+    function savePlayers(ps) {
+      try { localStorage.setItem(PLAYERS_KEY, JSON.stringify(ps)); } catch {}
+    }
+
+    function App() {
+      const [players, setPlayers] = useState(() => loadPlayers());
+      const [currentPlayerId, setCurrentPlayerId] = useState(null);
+      const [screen, setScreen] = useState('landing');
+      const [focusStage, setFocusStage] = useState(null);
+      const [pendingCelebrate, setPendingCelebrate] = useState(null);
+      const [tweaks, setTweaks] = useState(TWEAKS_DEFAULT);
+      const [editMode, setEditMode] = useState(false);
+
+      const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
+      const uploads   = currentPlayer?.uploads   || [];
+      const team      = currentPlayer?.team      || null;
+      const playerName = currentPlayer?.name     || '';
+
+      const state = useMemo(() => computeState(uploads), [uploads]);
+
+      // Persist players array whenever it changes
+      useEffect(() => { savePlayers(players); }, [players]);
+
+      // Save current screen into player record (except meta-screens)
+      useEffect(() => {
+        if (!currentPlayerId) return;
+        if (screen === 'landing' || screen === 'teamSelect') return;
+        setPlayers(prev => prev.map(p =>
+          p.id === currentPlayerId ? { ...p, lastScreen: screen } : p
+        ));
+      }, [screen, currentPlayerId]);
+
+      // Edit mode protocol
+      useEffect(() => {
+        const handler = (e) => {
+          if (e.data?.type === '__activate_edit_mode') setEditMode(true);
+          if (e.data?.type === '__deactivate_edit_mode') setEditMode(false);
+        };
+        window.addEventListener('message', handler);
+        window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+        return () => window.removeEventListener('message', handler);
+      }, []);
+
+      function selectPlayer(id) {
+        const p = players.find(x => x.id === id);
+        if (!p) return;
+        setCurrentPlayerId(id);
+        setScreen(p.lastScreen || 'map');
+      }
+
+      function handleTeamSelect({ name, teamId }) {
+        const newPlayer = {
+          id: Date.now().toString(),
+          name,
+          team: teamId,
+          uploads: [],
+          lastScreen: 'map',
+        };
+        setPlayers(prev => [...prev, newPlayer]);
+        setCurrentPlayerId(newPlayer.id);
+        setScreen('map');
+      }
+
+      function handleUploadConfirm(upload, delta) {
+        const prevState = state;
+        const newUploads = [...uploads, upload];
+        setPlayers(prev => prev.map(p =>
+          p.id === currentPlayerId ? { ...p, uploads: newUploads } : p
+        ));
+        const newState = computeState(newUploads);
+        setPendingCelebrate({ delta, state: newState, prevState });
+        setScreen('celebrate');
+      }
+
+      function exitToLanding() {
+        setCurrentPlayerId(null);
+        setScreen('landing');
+      }
+
+      function deletePlayer(id) {
+        if (!confirm('確定要刪除這個成員嗎？所有進度會清空！')) return;
+        setPlayers(prev => prev.filter(p => p.id !== id));
+        if (currentPlayerId === id) exitToLanding();
+      }
+
+      function setTweak(key, value) {
+        const next = { ...tweaks, [key]: value };
+        setTweaks(next);
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: value } }, '*');
+      }
+
+      const inGame = currentPlayer && screen !== 'landing' && screen !== 'teamSelect';
+
+      return (
+        <>
+          {/* Top title bar */}
+          {tweaks.showTitle && (
+            <div data-screen-label={`screen: ${screen}`} style={{
+              position: 'sticky', top: 0, zIndex: 40,
+              background: PALETTE.bg,
+              borderBottom: `3px solid ${PALETTE.border}`,
+              padding: '10px 24px',
+              display: 'flex', alignItems: 'center', gap: 14,
+              boxShadow: `0 4px 0 0 ${PALETTE.shadow}`,
+            }}>
+              <span style={{
+                fontFamily: "'Press Start 2P', monospace", fontSize: 14,
+                color: PALETTE.gold, letterSpacing: 2,
+                textShadow: '2px 2px 0 #000',
+              }}>
+                ★ TTQS QUEST
+              </span>
+              <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.textDim }}>
+                訓練品質任務闖關
+              </span>
+              <div style={{ flex: 1 }} />
+              {inGame && (
+                <span style={{
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 9,
+                  color: PALETTE.cyan, animation: 'blink 1.5s steps(2) infinite',
+                }}>
+                  ● AUTOSAVE
+                </span>
+              )}
+              {inGame && (
+                <span onClick={exitToLanding} style={{
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 9,
+                  color: PALETTE.textDim, cursor: 'pointer', paddingLeft: 12,
+                }}>
+                  ◀ 回到任務入口
+                </span>
+              )}
+            </div>
+          )}
+
+          <div style={{ position: 'relative', minHeight: 'calc(100vh - 60px)' }}>
+            {screen === 'landing' && (
+              <ScreenLanding
+                players={players}
+                onSelect={selectPlayer}
+                onNewPlayer={() => setScreen('teamSelect')}
+                onDelete={deletePlayer}
+                onOpenReport={() => setScreen('teamReport')}
+              />
+            )}
+            {screen === 'teamReport' && (
+              <ScreenTeamReport
+                players={players}
+                onClose={() => setScreen('landing')}
+              />
+            )}
+            {screen === 'teamSelect' && (
+              <ScreenTeamSelect
+                currentTeam={null} currentName=""
+                onSelect={handleTeamSelect}
+                onBack={() => setScreen('landing')}
+              />
+            )}
+            {currentPlayer && screen === 'map' && (
+              <ScreenMap
+                state={state} uploads={uploads} team={team} playerName={playerName}
+                onOpenStage={(id) => { setFocusStage(id); setScreen('achievements'); }}
+                onOpenUpload={() => setScreen('upload')}
+                onOpenAchievements={() => { setFocusStage(null); setScreen('achievements'); }}
+                onOpenProfile={() => setScreen('profile')}
+              />
+            )}
+            {currentPlayer && screen === 'upload' && (
+              <ScreenUpload
+                state={state} uploads={uploads}
+                onCancel={() => setScreen('map')}
+                onConfirm={handleUploadConfirm}
+              />
+            )}
+            {currentPlayer && screen === 'celebrate' && pendingCelebrate && (
+              <>
+                <ScreenMap
+                  state={pendingCelebrate.state} uploads={uploads} team={team} playerName={playerName}
+                  onOpenStage={() => {}} onOpenUpload={() => {}}
+                  onOpenAchievements={() => {}} onOpenProfile={() => {}}
+                />
+                <ScreenCelebration
+                  delta={pendingCelebrate.delta}
+                  state={pendingCelebrate.state}
+                  prevState={pendingCelebrate.prevState}
+                  onDone={() => { setPendingCelebrate(null); setScreen('map'); }}
+                />
+              </>
+            )}
+            {currentPlayer && screen === 'achievements' && (
+              <ScreenAchievements
+                state={state} uploads={uploads} focusStage={focusStage}
+                onClose={() => setScreen('map')}
+              />
+            )}
+            {currentPlayer && screen === 'profile' && (
+              <ScreenProfile
+                state={state} uploads={uploads} team={team} playerName={playerName}
+                onClose={() => setScreen('map')}
+                onChangeTeam={() => setScreen('teamSelect')}
+              />
+            )}
+          </div>
+
+          {tweaks.scanlines && <ScanlineOverlay />}
+
+          {editMode && (
+            <div className="tweaks-panel">
+              <h3>▼ TWEAKS</h3>
+              <div className="tweak-row">
+                <span>掃描線 CRT</span>
+                <button className="tweak-btn"
+                  onClick={() => setTweak('scanlines', !tweaks.scanlines)}>
+                  {tweaks.scanlines ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <div className="tweak-row">
+                <span>頂部標題列</span>
+                <button className="tweak-btn"
+                  onClick={() => setTweak('showTitle', !tweaks.showTitle)}>
+                  {tweaks.showTitle ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <label>
+                快速跳轉畫面
+                <select value={screen} onChange={(e) => setScreen(e.target.value)}>
+                  <option value="landing">成員大廳</option>
+                  <option value="teamSelect">建立角色</option>
+                  <option value="map">主地圖</option>
+                  <option value="upload">上傳流程</option>
+                  <option value="achievements">成就地圖</option>
+                  <option value="profile">冒險者檔案</option>
+                </select>
+              </label>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
