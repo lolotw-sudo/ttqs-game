@@ -1,5 +1,5 @@
 // 成就/指標詳情：19 項指標完整狀態 + 白話說明 + 對應資料
-function ScreenAchievements({ state, uploads, onClose, onOpenUpload, focusStage = null }) {
+function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpload, focusStage = null }) {
   const [stageFilter, setStageFilter] = useState(focusStage || 'ALL');
   const [selected, setSelected] = useState(null);
 
@@ -96,7 +96,7 @@ function ScreenAchievements({ state, uploads, onClose, onOpenUpload, focusStage 
       {/* 詳情 modal */}
       {selected && (
         <IndicatorDetail indicator={selected} state={state} uploads={uploads}
-          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload} />
+          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload} onDeleteUpload={onDeleteUpload} />
       )}
     </div>
   );
@@ -118,7 +118,7 @@ function FilterPill({ children, active, color, onClick }) {
   );
 }
 
-function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
+function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload }) {
   const stage = STAGES.find(s => s.id === indicator.stage);
   const status = state.indicatorStatus[indicator.id];
   const relevantUploads = uploads.filter(u => {
@@ -231,28 +231,44 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
                     </div>
                   </div>
 
-                  {/* 第三欄：檢視按鈕 */}
-                  {u.fileData ? (
-                    <div
-                      onClick={() => {
-                        const a = document.createElement('a');
-                        a.href = u.fileData;
-                        a.download = suggestedName;
-                        a.click();
-                      }}
-                      style={{
+                  {/* 第三欄：檢視 + 刪除按鈕 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+                    {u.fileData ? (
+                      <div
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = u.fileData;
+                          a.download = suggestedName;
+                          a.click();
+                        }}
+                        style={{
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                          color: PALETTE.green, cursor: 'pointer',
+                          border: `2px solid ${PALETTE.green}`,
+                          padding: '6px 10px', whiteSpace: 'nowrap', textAlign: 'center',
+                        }}
+                      >↓ 檢視</div>
+                    ) : (
+                      <div style={{
                         fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                        color: PALETTE.green, cursor: 'pointer',
-                        border: `2px solid ${PALETTE.green}`,
-                        padding: '6px 10px', whiteSpace: 'nowrap',
-                      }}
-                    >↓ 檢視</div>
-                  ) : (
-                    <div style={{
-                      fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                      color: PALETTE.textDim, whiteSpace: 'nowrap',
-                    }}>無原檔</div>
-                  )}
+                        color: PALETTE.textDim, whiteSpace: 'nowrap', textAlign: 'center',
+                      }}>無原檔</div>
+                    )}
+                    {onDeleteUpload && (
+                      <div
+                        onClick={() => {
+                          if (!confirm('確定要刪除這筆資料嗎？')) return;
+                          onDeleteUpload(u.id);
+                        }}
+                        style={{
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                          color: PALETTE.red, cursor: 'pointer',
+                          border: `2px solid ${PALETTE.red}`,
+                          padding: '6px 10px', whiteSpace: 'nowrap', textAlign: 'center',
+                        }}
+                      >✕ 刪除</div>
+                    )}
+                  </div>
                 </div>
               );
             })}

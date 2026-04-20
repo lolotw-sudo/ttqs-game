@@ -229,6 +229,14 @@
         if (currentPlayerId === id) exitToLanding();
       }
 
+      function handleDeleteUpload(uploadId) {
+        setPlayers(prev => prev.map(p =>
+          p.id === currentPlayerId
+            ? { ...p, uploads: p.uploads.filter(u => u.id !== uploadId) }
+            : p
+        ));
+      }
+
       function setTweak(key, value) {
         const next = { ...tweaks, [key]: value };
         setTweaks(next);
@@ -338,6 +346,7 @@
                 state={state} uploads={uploads} focusStage={focusStage}
                 onClose={() => setScreen('map')}
                 onOpenUpload={() => setScreen('upload')}
+                onDeleteUpload={handleDeleteUpload}
               />
             )}
             {currentPlayer && screen === 'profile' && (
