@@ -183,6 +183,8 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
               // 只標示跟這個指標有關的那個 type；若多個都相關，取難度最高
               const matching = ts.filter(t => t.maps.includes(indicator.id));
               const t = matching.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), matching[0]);
+              // 所有跟此指標相關的類型名稱
+              const typeLabels = matching.map(m => m.name);
               return (
                 <div key={u.id} style={{
                   display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10,
@@ -196,8 +198,37 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
                       <span style={{ color: PALETTE.cyan, fontFamily: "'Press Start 2P', monospace", fontSize: 9, marginRight: 4 }}>{u.courseCode || '—'}</span>
                       {u.courseName || '(未指定課程)'} · {u.ts}
                     </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                      {typeLabels.map(label => (
+                        <span key={label} style={{
+                          fontFamily: "'DotGothic16', monospace", fontSize: 11,
+                          background: PALETTE.panelLt, color: PALETTE.gold,
+                          padding: '1px 7px', border: `1px solid ${PALETTE.line}`,
+                        }}>{label}</span>
+                      ))}
+                    </div>
                   </div>
-                  <DifficultyBadge level={t.difficulty} compact />
+                  {u.fileData ? (
+                    <div
+                      onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = u.fileData;
+                        a.download = u.fileName;
+                        a.click();
+                      }}
+                      style={{
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                        color: PALETTE.green, cursor: 'pointer',
+                        border: `2px solid ${PALETTE.green}`,
+                        padding: '4px 8px', whiteSpace: 'nowrap',
+                      }}
+                    >↓ 檢視</div>
+                  ) : (
+                    <div style={{
+                      fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                      color: PALETTE.textDim, whiteSpace: 'nowrap',
+                    }}>無原檔</div>
+                  )}
                 </div>
               );
             })}
