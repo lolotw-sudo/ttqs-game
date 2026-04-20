@@ -1,5 +1,5 @@
 // 成就/指標詳情：19 項指標完整狀態 + 白話說明 + 對應資料
-function ScreenAchievements({ state, uploads, onClose, focusStage = null }) {
+function ScreenAchievements({ state, uploads, onClose, onOpenUpload, focusStage = null }) {
   const [stageFilter, setStageFilter] = useState(focusStage || 'ALL');
   const [selected, setSelected] = useState(null);
 
@@ -41,6 +41,9 @@ function ScreenAchievements({ state, uploads, onClose, focusStage = null }) {
           const status = state.indicatorStatus[ind.id];
           const count = state.perInd[ind.id].count;
           const stage = STAGES.find(s => s.id === ind.stage);
+          const units = [...new Set(
+            EVIDENCE_TYPES.filter(t => t.maps.includes(ind.id)).map(t => t.unit).filter(Boolean)
+          )];
           return (
             <PixelBox key={ind.id} hover onClick={() => setSelected(ind)}
               color={status === 'done' ? '#244a2e' : status === 'partial' ? '#4a3d1a' : PALETTE.panel}
@@ -60,6 +63,16 @@ function ScreenAchievements({ state, uploads, onClose, focusStage = null }) {
                   </div>
                   <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, marginTop: 4, lineHeight: 1.3 }}>
                     {ind.plain}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                    {units.map(u => (
+                      <span key={u} style={{
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                        background: PALETTE.panelLt, color: PALETTE.cyan,
+                        padding: '2px 6px',
+                        border: `1px solid ${PALETTE.line}`,
+                      }}>{u}</span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -83,7 +96,7 @@ function ScreenAchievements({ state, uploads, onClose, focusStage = null }) {
       {/* 詳情 modal */}
       {selected && (
         <IndicatorDetail indicator={selected} state={state} uploads={uploads}
-          onClose={() => setSelected(null)} />
+          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload} />
       )}
     </div>
   );
@@ -105,7 +118,7 @@ function FilterPill({ children, active, color, onClick }) {
   );
 }
 
-function IndicatorDetail({ indicator, state, uploads, onClose }) {
+function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
   const stage = STAGES.find(s => s.id === indicator.stage);
   const status = state.indicatorStatus[indicator.id];
   const relevantUploads = uploads.filter(u => {
@@ -213,11 +226,33 @@ function IndicatorDetail({ indicator, state, uploads, onClose }) {
                 <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.text, fontWeight: 700 }}>
                   {t.name}
                 </div>
+                {t.unit && (
+                  <div style={{
+                    display: 'inline-block', marginTop: 4,
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                    background: PALETTE.panelLt, color: PALETTE.cyan,
+                    padding: '2px 6px',
+                    border: `1px solid ${PALETTE.line}`,
+                  }}>
+                    {t.unit}
+                  </div>
+                )}
               </div>
               <DifficultyBadge level={t.difficulty} compact />
             </div>
           ))}
         </div>
+
+        {onOpenUpload && (
+          <div style={{ marginTop: 20, textAlign: 'center' }}>
+            <PixelButton
+              size="md" color={PALETTE.gold} textColor="#000"
+              onClick={() => { onClose(); onOpenUpload(); }}
+            >
+              ⚔ 上傳這個指標的佐證資料
+            </PixelButton>
+          </div>
+        )}
       </div>
     </div>
   );

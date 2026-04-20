@@ -70,6 +70,21 @@ function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport 
             ))}
             <NewMemberCard onClick={onNewPlayer} />
           </div>
+
+          {/* ── 戰隊積分排名 ── */}
+          <div style={{ marginTop: 48 }}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: 13, color: PALETTE.text, marginBottom: 4, letterSpacing: 1,
+              }}>▼ 戰隊積分排名 TEAM RANKING</div>
+              <div style={{
+                fontFamily: "'DotGothic16', monospace",
+                fontSize: 14, color: PALETTE.textDim,
+              }}>各戰隊成員上傳合計 · 19 項指標達成狀況</div>
+            </div>
+            <TeamRanking players={players} />
+          </div>
         </>
       )}
     </div>
@@ -230,6 +245,141 @@ function NewMemberCard({ onClick }) {
         fontFamily: "'DotGothic16', monospace", fontSize: 13,
         color: PALETTE.textDim, marginTop: 8,
       }}>建立新角色開始冒險</div>
+    </div>
+  );
+}
+
+// ── 戰隊積分排名表 ──
+function TeamRanking({ players }) {
+  const teamStats = useMemo(() => {
+    return TEAMS.map(team => {
+      const allUploads = players
+        .filter(p => p.team === team.id)
+        .flatMap(p => p.uploads || []);
+      const state = computeState(allUploads);
+      const memberCount = players.filter(p => p.team === team.id).length;
+      return { team, state, memberCount };
+    });
+  }, [players]);
+
+  const ranked = [...teamStats].sort((a, b) => b.state.points - a.state.points);
+  const rankMap = {};
+  ranked.forEach((ts, i) => { rankMap[ts.team.id] = i + 1; });
+
+  const cellBase = (bg = 'transparent') => ({
+    padding: '6px 8px',
+    borderRight: `1px solid ${PALETTE.line}`,
+    borderBottom: `1px solid ${PALETTE.line}`,
+    background: bg,
+    verticalAlign: 'middle',
+  });
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{
+        width: '100%', borderCollapse: 'collapse',
+        border: `2px solid ${PALETTE.line}`,
+        fontFamily: "'DotGothic16', monospace",
+      }}>
+        <thead>
+          <tr>
+            <th style={{
+              ...cellBase(PALETTE.bgAlt), width: '18%', textAlign: 'left',
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 9, color: PALETTE.textDim, padding: '10px 10px',
+            }}>指標</th>
+            {teamStats.map(({ team, state, memberCount }) => {
+              const rank = rankMap[team.id];
+              const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+              return (
+                <th key={team.id} style={{
+                  ...cellBase(team.color + '18'), textAlign: 'center',
+                  borderTop: `3px solid ${team.color}`, padding: '10px 6px',
+                }}>
+                  <div style={{ fontSize: 20, lineHeight: 1 }}>{team.emoji}</div>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    fontSize: 8, color: team.color, marginTop: 4, lineHeight: 1.5,
+                  }}>{team.name}</div>
+                  <div style={{
+                    fontFamily: "'DotGothic16', monospace",
+                    fontSize: 11, color: PALETTE.textDim, marginTop: 2,
+                  }}>{memberCount} 人</div>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    fontSize: 13, color: PALETTE.gold, marginTop: 8,
+                    textShadow: '1px 1px 0 #000',
+                  }}>◎ {state.points}</div>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    fontSize: 9, color: PALETTE.textDim, marginTop: 3,
+                  }}>{medal}</div>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {STAGES.map(stage => (
+            <React.Fragment key={stage.id}>
+              {/* 關卡分隔列 */}
+              <tr>
+                <td colSpan={TEAMS.length + 1} style={{
+                  background: stage.color + '28',
+                  borderBottom: `1px solid ${stage.color}`,
+                  borderTop: `2px solid ${stage.color}`,
+                  padding: '5px 10px',
+                }}>
+                  <span style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    fontSize: 9, color: stage.color, letterSpacing: 1,
+                  }}>{stage.emoji} {stage.name} · {stage.subtitle}</span>
+                </td>
+              </tr>
+              {/* 指標列 */}
+              {INDICATORS.filter(i => i.stage === stage.id).map(ind => (
+                <tr key={ind.id}>
+                  <td style={{ ...cellBase(PALETTE.bgAlt), padding: '7px 10px' }}>
+                    <div style={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: 8, color: stage.color, marginBottom: 3,
+                    }}>#{ind.id}</div>
+                    <div style={{ fontSize: 13, color: PALETTE.text, lineHeight: 1.3 }}>
+                      {ind.name}
+                    </div>
+                  </td>
+                  {teamStats.map(({ team, state }) => {
+                    const status = state.indicatorStatus[ind.id];
+                    const count  = state.perInd[ind.id].count;
+                    const bg = status === 'done'    ? '#1a3d22'
+                             : status === 'partial' ? '#3a2e08'
+                             : 'transparent';
+                    const glyph = status === 'done'    ? '✔'
+                                : status === 'partial' ? '◐' : '◻';
+                    const glyphColor = status === 'done'    ? PALETTE.green
+                                     : status === 'partial' ? PALETTE.gold
+                                     : PALETTE.line;
+                    return (
+                      <td key={team.id} style={{ ...cellBase(bg), textAlign: 'center' }}>
+                        <div style={{
+                          fontFamily: "'Press Start 2P', monospace",
+                          fontSize: 13, color: glyphColor, lineHeight: 1,
+                        }}>{glyph}</div>
+                        {count > 0 && (
+                          <div style={{
+                            fontFamily: "'DotGothic16', monospace",
+                            fontSize: 11, color: PALETTE.textDim, marginTop: 2,
+                          }}>{count} 筆</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

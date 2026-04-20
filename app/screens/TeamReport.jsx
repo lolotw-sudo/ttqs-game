@@ -1,8 +1,15 @@
 // 團隊佐證資料報表：依指標分類，支援 CSV 命名清單 + 批次 ZIP 下載
+const DL_SESSION_KEY = 'ttqs_dl_auth';
+const DL_PASSWORD    = '9336';
+
 function ScreenTeamReport({ players, onClose }) {
-  const { useState, useMemo } = React;
+  const { useState, useMemo, useRef } = React;
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [downloading, setDownloading] = useState(false);
+  const [pwVerified, setPwVerified]   = useState(() => sessionStorage.getItem(DL_SESSION_KEY) === '1');
+  const [showPwModal, setShowPwModal] = useState(false);
+  const [pwError, setPwError]         = useState(false);
+  const pendingAction = useRef(null);
 
   function cleanName(s) {
     return (s || '').replace(/[\/\\:*?"<>|\s]/g, '_').replace(/_+/g, '_');
@@ -13,8 +20,10 @@ function ScreenTeamReport({ players, onClose }) {
     return parts.length > 1 ? parts.pop() : 'pdf';
   }
 
-  function suggestName(upload, type, indicator) {
-    return `${cleanName(type.name)}_指標${indicator.id}_${cleanName(indicator.name)}_${cleanName(upload.courseName)}.${getExt(upload.fileName)}`;
+  function suggestName(upload, type, indicator, seq = null) {
+    const code = upload.courseCode ? cleanName(upload.courseCode) + '_' : '';
+    const seqStr = seq !== null ? `_${String(seq).padStart(3, '0')}` : '';
+    return `${cleanName(type.name)}_指標${indicator.id}_${cleanName(indicator.name)}_${code}${cleanName(upload.courseName)}${seqStr}.${getExt(upload.fileName)}`;
   }
 
   // Flatten: one entry per (upload × type × indicator)
@@ -70,6 +79,26 @@ function ScreenTeamReport({ players, onClose }) {
     return map;
   }, [allEntries]);
 
+  function requirePassword(action) {
+    if (pwVerified) { action(); return; }
+    pendingAction.current = action;
+    setPwError(false);
+    setShowPwModal(true);
+  }
+
+  function handlePasswordSubmit(pw) {
+    if (pw === DL_PASSWORD) {
+      sessionStorage.setItem(DL_SESSION_KEY, '1');
+      setPwVerified(true);
+      setShowPwModal(false);
+      const fn = pendingAction.current;
+      pendingAction.current = null;
+      if (fn) fn();
+    } else {
+      setPwError(true);
+    }
+  }
+
   function downloadCSV() {
     const header = ['成員', '戰隊', '類別', '指標#', '指標名稱', '課程代碼', '課程名稱', '原始檔名', '建議檔名'];
     const rows = filtered.map(e => [
@@ -100,11 +129,11 @@ function ScreenTeamReport({ players, onClose }) {
     setDownloading(true);
     try {
       const zip = new JSZip();
-      const seen = new Set();
+      const seenUploadIds = new Set();
+      const nameCount = {};
       filtered.forEach(e => {
-        if (!e.upload.fileData || seen.has(e.upload.id)) return;
-        seen.add(e.upload.id);
-        // Build combined name for this upload
+        if (!e.upload.fileData || seenUploadIds.has(e.upload.id)) return;
+        seenUploadIds.add(e.upload.id);
         const tids = getUploadTypeIds(e.upload);
         const types = tids.map(tid => EVIDENCE_TYPES.find(t => t.id === tid)).filter(Boolean);
         const allIndIds = [...new Set(types.flatMap(t => t.maps))];
@@ -113,7 +142,12 @@ function ScreenTeamReport({ players, onClose }) {
         const indNames = allIndIds
           .map(id => cleanName(INDICATORS.find(i => i.id === id)?.name || ''))
           .join('+');
-        const name = `${cleanName(primaryType.name)}_指標${indNums}_${indNames}_${cleanName(e.upload.courseName)}.${getExt(e.upload.fileName)}`;
+        const code = e.upload.courseCode ? cleanName(e.upload.courseCode) + '_' : '';
+        const base = `${cleanName(primaryType.name)}_指標${indNums}_${indNames}_${code}${cleanName(e.upload.courseName)}`;
+        const ext = getExt(e.upload.fileName);
+        nameCount[base] = (nameCount[base] || 0) + 1;
+        const seq = String(nameCount[base]).padStart(3, '0');
+        const name = `${base}_${seq}.${ext}`;
         const base64 = e.upload.fileData.split(',')[1];
         zip.file(name, base64, { base64: true });
       });
@@ -143,14 +177,14 @@ function ScreenTeamReport({ players, onClose }) {
           📋 佐證資料報表
         </h1>
         <div style={{ flex: 1 }} />
-        <PixelButton size="sm" color={PALETTE.cyan} textColor="#000" onClick={downloadCSV}>
+        <PixelButton size="sm" color={PALETTE.cyan} textColor="#000" onClick={() => requirePassword(downloadCSV)}>
           ↓ 命名清單 CSV
         </PixelButton>
         <PixelButton
           size="sm"
           color={zipCount > 0 ? PALETTE.gold : PALETTE.panelLt}
           textColor={zipCount > 0 ? '#000' : PALETTE.textDim}
-          onClick={batchDownloadZip}
+          onClick={() => requirePassword(batchDownloadZip)}
           disabled={downloading}
         >
           {downloading ? '壓縮中…' : `↓ 批次下載 ZIP (${zipCount})`}
@@ -336,12 +370,12 @@ function ScreenTeamReport({ players, onClose }) {
                       <div>
                         {hasFile ? (
                           <div
-                            onClick={() => {
+                            onClick={() => requirePassword(() => {
                               const a = document.createElement('a');
                               a.href = e.upload.fileData;
                               a.download = name;
                               a.click();
-                            }}
+                            })}
                             style={{
                               fontFamily: "'Press Start 2P', monospace", fontSize: 8,
                               color: PALETTE.green, cursor: 'pointer',
@@ -365,6 +399,93 @@ function ScreenTeamReport({ players, onClose }) {
           );
         })
       )}
+
+      {showPwModal && (
+        <PasswordModal
+          onConfirm={handlePasswordSubmit}
+          onCancel={() => { setShowPwModal(false); pendingAction.current = null; }}
+          error={pwError}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── 密碼輸入 Modal ──
+function PasswordModal({ onConfirm, onCancel, error }) {
+  const [pw, setPw] = React.useState('');
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(10,10,26,0.88)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: PALETTE.bgAlt,
+        border: `3px solid ${PALETTE.gold}`,
+        boxShadow: pixelShadow(PALETTE.shadow, 6),
+        padding: 32, width: 'min(400px, 92vw)',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: 13, color: PALETTE.gold,
+          textShadow: '2px 2px 0 #000',
+          marginBottom: 16, lineHeight: 1.6,
+        }}>
+          🔒 下載鎖定
+        </div>
+
+        <div style={{
+          fontFamily: "'DotGothic16', monospace",
+          fontSize: 14, color: PALETTE.textDim,
+          marginBottom: 20, lineHeight: 1.6,
+        }}>
+          密碼提示：LOLO 老師的辦公室<br />桌機分機號碼
+        </div>
+
+        <input
+          type="password"
+          value={pw}
+          onChange={e => { setPw(e.target.value); }}
+          onKeyDown={e => { if (e.key === 'Enter') onConfirm(pw); }}
+          autoFocus
+          placeholder="輸入密碼"
+          style={{
+            width: '100%',
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 16, letterSpacing: 6,
+            padding: '12px 14px',
+            background: PALETTE.bg,
+            color: PALETTE.text,
+            border: `3px solid ${error ? PALETTE.red : PALETTE.border}`,
+            boxShadow: `inset 2px 2px 0 rgba(0,0,0,0.4)`,
+            outline: 'none',
+            textAlign: 'center',
+            marginBottom: 8,
+          }}
+        />
+
+        {error && (
+          <div style={{
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 9, color: PALETTE.red,
+            marginBottom: 12,
+            animation: 'wiggle 0.4s steps(4)',
+          }}>
+            ✕ 密碼錯誤，請再試一次
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+          <PixelButton color={PALETTE.panelLt} textColor={PALETTE.text} onClick={onCancel}>
+            取消
+          </PixelButton>
+          <PixelButton color={PALETTE.gold} textColor="#000" onClick={() => onConfirm(pw)}>
+            確認 ▶
+          </PixelButton>
+        </div>
+      </div>
     </div>
   );
 }
