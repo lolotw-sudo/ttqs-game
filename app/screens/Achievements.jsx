@@ -202,8 +202,8 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
                       {typeLabels.map(label => (
                         <span key={label} style={{
                           fontFamily: "'DotGothic16', monospace", fontSize: 11,
-                          background: PALETTE.panelLt, color: PALETTE.gold,
-                          padding: '1px 7px', border: `1px solid ${PALETTE.line}`,
+                          background: PALETTE.green + '22', color: PALETTE.green,
+                          padding: '1px 7px', border: `1px solid ${PALETTE.green}`,
                         }}>{label}</span>
                       ))}
                     </div>
@@ -254,16 +254,17 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
             }}>
               <span style={{ fontSize: 20 }}>{t.icon}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.text, fontWeight: 700 }}>
-                  {t.name}
-                </div>
+                <span style={{
+                  fontFamily: "'DotGothic16', monospace", fontSize: 13,
+                  background: PALETTE.green + '22', color: PALETTE.green,
+                  padding: '1px 7px', border: `1px solid ${PALETTE.green}`,
+                }}>{t.name}</span>
                 {t.unit && (
                   <div style={{
-                    display: 'inline-block', marginTop: 4,
+                    display: 'inline-block', marginTop: 4, marginLeft: 6,
                     fontFamily: "'Press Start 2P', monospace", fontSize: 7,
                     background: PALETTE.panelLt, color: PALETTE.cyan,
-                    padding: '2px 6px',
-                    border: `1px solid ${PALETTE.line}`,
+                    padding: '2px 6px', border: `1px solid ${PALETTE.line}`,
                   }}>
                     {t.unit}
                   </div>
