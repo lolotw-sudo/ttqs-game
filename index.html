@@ -337,6 +337,7 @@
               <ScreenAchievements
                 state={state} uploads={uploads} focusStage={focusStage}
                 onClose={() => setScreen('map')}
+                onOpenUpload={() => setScreen('upload')}
               />
             )}
             {currentPlayer && screen === 'profile' && (
