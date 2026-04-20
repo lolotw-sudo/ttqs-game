@@ -180,47 +180,71 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload }) {
             {relevantUploads.map(u => {
               const tids = getUploadTypeIds(u);
               const ts = tids.map(tid => EVIDENCE_TYPES.find(x => x.id === tid)).filter(Boolean);
-              // 只標示跟這個指標有關的那個 type；若多個都相關，取難度最高
               const matching = ts.filter(t => t.maps.includes(indicator.id));
-              const t = matching.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), matching[0]);
-              // 所有跟此指標相關的類型名稱
-              const typeLabels = matching.map(m => m.name);
+              const primaryType = matching.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), matching[0]);
+
+              // 建議檔名
+              const cleanStr = s => (s || '').replace(/[\/\\:*?"<>|\s]/g, '_').replace(/_+/g, '_');
+              const getExt  = f => { const p = (f || '').split('.'); return p.length > 1 ? p.pop() : 'pdf'; };
+              const code = u.courseCode ? cleanStr(u.courseCode) + '_' : '';
+              const suggestedName = `${cleanStr(primaryType.name)}_指標${indicator.id}_${cleanStr(indicator.name)}_${code}${cleanStr(u.courseName)}.${getExt(u.fileName)}`;
+
               return (
                 <div key={u.id} style={{
-                  display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10,
-                  padding: '8px 12px', background: PALETTE.panel,
+                  display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 12,
+                  padding: '10px 14px', background: PALETTE.panel,
                   border: `2px solid ${PALETTE.border}`, marginBottom: 6, alignItems: 'center',
                 }}>
-                  <span style={{ fontSize: 20 }}>{t.icon}</span>
+                  {/* 第一欄：佐證類型標籤 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {matching.map(m => (
+                      <span key={m.id} style={{
+                        fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                        background: PALETTE.green + '22', color: PALETTE.green,
+                        padding: '2px 8px', border: `1px solid ${PALETTE.green}`,
+                        display: 'block',
+                      }}>{m.name}</span>
+                    ))}
+                  </div>
+
+                  {/* 第二欄：原始檔名 / 更新檔名 */}
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fileName}</div>
-                    <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span style={{ color: PALETTE.cyan, fontFamily: "'Press Start 2P', monospace", fontSize: 9, marginRight: 4 }}>{u.courseCode || '—'}</span>
-                      {u.courseName || '(未指定課程)'} · {u.ts}
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                        color: PALETTE.textDim, marginBottom: 2,
+                      }}>原始檔名</div>
+                      <div style={{
+                        fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.text,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{u.fileName}</div>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                      {typeLabels.map(label => (
-                        <span key={label} style={{
-                          fontFamily: "'DotGothic16', monospace", fontSize: 11,
-                          background: PALETTE.green + '22', color: PALETTE.green,
-                          padding: '1px 7px', border: `1px solid ${PALETTE.green}`,
-                        }}>{label}</span>
-                      ))}
+                    <div>
+                      <div style={{
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                        color: PALETTE.textDim, marginBottom: 2,
+                      }}>更新檔名</div>
+                      <div style={{
+                        fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.cyan,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{suggestedName}</div>
                     </div>
                   </div>
+
+                  {/* 第三欄：檢視按鈕 */}
                   {u.fileData ? (
                     <div
                       onClick={() => {
                         const a = document.createElement('a');
                         a.href = u.fileData;
-                        a.download = u.fileName;
+                        a.download = suggestedName;
                         a.click();
                       }}
                       style={{
                         fontFamily: "'Press Start 2P', monospace", fontSize: 8,
                         color: PALETTE.green, cursor: 'pointer',
                         border: `2px solid ${PALETTE.green}`,
-                        padding: '4px 8px', whiteSpace: 'nowrap',
+                        padding: '6px 10px', whiteSpace: 'nowrap',
                       }}
                     >↓ 檢視</div>
                   ) : (
