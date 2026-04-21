@@ -98,6 +98,22 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyCBZhX-WRpIic4LMEe2XFoG0xb0rPZAI9o",
+      authDomain: "ttqs-game.firebaseapp.com",
+      databaseURL: "https://ttqs-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ttqs-game",
+      storageBucket: "ttqs-game.firebasestorage.app",
+      messagingSenderId: "244519103751",
+      appId: "1:244519103751:web:c19540f6ae59213b1569a2",
+    });
+    window.__playersRef = firebase.database().ref('players');
+  </script>
+
   <script type="text/babel" src="./app/data.jsx"></script>
   <script type="text/babel" src="./app/components.jsx"></script>
   <script type="text/babel" src="./app/screens/Map.jsx"></script>
@@ -120,36 +136,13 @@
       "bgIntensity": 50
     }/*EDITMODE-END*/;
 
-    const PLAYERS_KEY = 'ttqs_players_v1';
-    const LEGACY_KEY  = 'ttqs_quest_state_v2';
-
-    function loadPlayers() {
-      try {
-        const raw = localStorage.getItem(PLAYERS_KEY);
-        if (raw) return JSON.parse(raw);
-        // migrate legacy single-player save
-        const legacy = localStorage.getItem(LEGACY_KEY);
-        if (legacy) {
-          const p = JSON.parse(legacy);
-          if (p?.playerName && p?.team) {
-            return [{
-              id: Date.now().toString(),
-              name: p.playerName,
-              team: p.team,
-              uploads: p.uploads || [],
-              lastScreen: p.screen || 'map',
-            }];
-          }
-        }
-      } catch {}
-      return [];
-    }
     function savePlayers(ps) {
-      try { localStorage.setItem(PLAYERS_KEY, JSON.stringify(ps)); } catch {}
+      window.__playersRef.set(ps && ps.length ? ps : null).catch(console.error);
     }
 
     function App() {
-      const [players, setPlayers] = useState(() => loadPlayers());
+      const [players, setPlayers] = useState([]);
+      const [dbLoaded, setDbLoaded] = useState(false);
       const [currentPlayerId, setCurrentPlayerId] = useState(null);
       const [screen, setScreen] = useState('landing');
       const [focusStage, setFocusStage] = useState(null);
@@ -164,16 +157,39 @@
 
       const state = useMemo(() => computeState(uploads), [uploads]);
 
-      // Persist players array whenever it changes
-      useEffect(() => { savePlayers(players); }, [players]);
-
-      // Save current screen into player record (except meta-screens)
+      // Firebase 即時同步（含 localStorage 一次性遷移）
       useEffect(() => {
-        if (!currentPlayerId) return;
+        window.__playersRef.on('value', snapshot => {
+          const val = snapshot.val();
+          if (val === null) {
+            try {
+              const raw = localStorage.getItem('ttqs_players_v1');
+              if (raw) {
+                const migrated = JSON.parse(raw);
+                if (migrated && migrated.length > 0) {
+                  window.__playersRef.set(migrated);
+                  return;
+                }
+              }
+            } catch {}
+          }
+          setPlayers(val ? (Array.isArray(val) ? val : Object.values(val)) : []);
+          setDbLoaded(true);
+        });
+        return () => window.__playersRef.off('value');
+      }, []);
+
+      // 記錄玩家所在畫面
+      useEffect(() => {
+        if (!currentPlayerId || !dbLoaded) return;
         if (screen === 'landing' || screen === 'teamSelect') return;
-        setPlayers(prev => prev.map(p =>
-          p.id === currentPlayerId ? { ...p, lastScreen: screen } : p
-        ));
+        setPlayers(prev => {
+          const updated = prev.map(p =>
+            p.id === currentPlayerId ? { ...p, lastScreen: screen } : p
+          );
+          savePlayers(updated);
+          return updated;
+        });
       }, [screen, currentPlayerId]);
 
       // Edit mode protocol
@@ -202,7 +218,9 @@
           uploads: [],
           lastScreen: 'map',
         };
-        setPlayers(prev => [...prev, newPlayer]);
+        const newPlayers = [...players, newPlayer];
+        setPlayers(newPlayers);
+        savePlayers(newPlayers);
         setCurrentPlayerId(newPlayer.id);
         setScreen('map');
       }
@@ -210,9 +228,11 @@
       function handleUploadConfirm(upload, delta) {
         const prevState = state;
         const newUploads = [...uploads, upload];
-        setPlayers(prev => prev.map(p =>
+        const newPlayers = players.map(p =>
           p.id === currentPlayerId ? { ...p, uploads: newUploads } : p
-        ));
+        );
+        setPlayers(newPlayers);
+        savePlayers(newPlayers);
         const newState = computeState(newUploads);
         setPendingCelebrate({ delta, state: newState, prevState });
         setScreen('celebrate');
@@ -225,16 +245,20 @@
 
       function deletePlayer(id) {
         if (!confirm('確定要刪除這個成員嗎？所有進度會清空！')) return;
-        setPlayers(prev => prev.filter(p => p.id !== id));
+        const newPlayers = players.filter(p => p.id !== id);
+        setPlayers(newPlayers);
+        savePlayers(newPlayers);
         if (currentPlayerId === id) exitToLanding();
       }
 
       function handleDeleteUpload(uploadId) {
-        setPlayers(prev => prev.map(p =>
+        const newPlayers = players.map(p =>
           p.id === currentPlayerId
             ? { ...p, uploads: p.uploads.filter(u => u.id !== uploadId) }
             : p
-        ));
+        );
+        setPlayers(newPlayers);
+        savePlayers(newPlayers);
       }
 
       function setTweak(key, value) {
@@ -244,6 +268,25 @@
       }
 
       const inGame = currentPlayer && screen !== 'landing' && screen !== 'teamSelect';
+
+      // 等待 Firebase 連線
+      if (!dbLoaded) return (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '100vh', flexDirection: 'column', gap: 16,
+        }}>
+          <div style={{
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 14, color: '#ffd23f',
+            textShadow: '2px 2px 0 #000',
+          }}>★ TTQS QUEST</div>
+          <div style={{
+            fontFamily: "'DotGothic16', monospace",
+            fontSize: 16, color: '#8888aa',
+            animation: 'blink 1.5s steps(2) infinite',
+          }}>連線中…</div>
+        </div>
+      );
 
       return (
         <>
