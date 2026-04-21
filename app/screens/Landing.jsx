@@ -120,7 +120,7 @@ function GuidanceBlock() {
         transition: 'max-height 0.3s ease',
       }}>
         <img
-          src="/assets/guide-banner3.png"
+          src="assets/guide-banner3.png"
           alt="使用說明：上傳關鍵資料，解鎖TTQS成就"
           style={{ width: '100%', display: 'block' }}
         />
