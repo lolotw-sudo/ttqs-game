@@ -5,18 +5,17 @@ function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport 
   return (
     <div style={{ padding: '40px 28px 60px', maxWidth: 1280, margin: '0 auto' }}>
       {/* 標題 */}
-      <div style={{ textAlign: 'center', marginBottom: isEmpty ? 0 : 40 }}>
+      <div style={{ textAlign: 'center', marginBottom: 12 }}>
         <div style={{
           fontFamily: "'Press Start 2P', monospace",
-          fontSize: 28, color: PALETTE.gold,
+          fontSize: 22, color: PALETTE.gold,
           textShadow: '4px 4px 0 #000, -2px -2px 0 #000',
-          letterSpacing: 2, marginBottom: 10,
-        }}>★ TTQS QUEST</div>
-        <div style={{
-          fontFamily: "'DotGothic16', monospace",
-          fontSize: 16, color: PALETTE.textDim,
-        }}>訓練品質任務闖關</div>
+          letterSpacing: 2,
+        }}>★ TTQS Quest：評鑑資料蒐集任務</div>
       </div>
+
+      {/* 使用說明（可折疊） */}
+      <GuidanceBlock />
 
       {isEmpty ? (
         /* ── 空狀態 ── */
@@ -87,6 +86,45 @@ function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport 
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ── 使用說明折疊區塊 ──
+function GuidanceBlock() {
+  const [open, setOpen] = React.useState(true);
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      {/* 折疊按鈕 */}
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', justifyContent: 'flex-end',
+          marginBottom: 4, cursor: 'pointer', userSelect: 'none',
+        }}
+      >
+        <span style={{
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: 9, color: PALETTE.textDim,
+          display: 'inline-block',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+          transition: 'transform 0.3s ease',
+        }}>▼</span>
+      </div>
+
+      {/* 圖片（max-height 動畫） */}
+      <div style={{
+        maxHeight: open ? '800px' : '0px',
+        overflow: 'hidden',
+        transition: 'max-height 0.3s ease',
+      }}>
+        <img
+          src="/assets/guide-banner3.png"
+          alt="使用說明：上傳關鍵資料，解鎖TTQS成就"
+          style={{ width: '100%', display: 'block' }}
+        />
+      </div>
     </div>
   );
 }
