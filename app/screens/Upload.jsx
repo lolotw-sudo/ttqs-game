@@ -362,7 +362,7 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
       <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 15, color: PALETTE.text, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <span style={{ color: PALETTE.gold, fontFamily: "'Press Start 2P', monospace", fontSize: 10 }}>▼ </span>
-          這份檔案有哪些用途？（可複選）
+          請選擇上傳檔案的類型（可複選）
         </div>
         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: PALETTE.textDim }}>
           已選 {typeIds.length} 項
