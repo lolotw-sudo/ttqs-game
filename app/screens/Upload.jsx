@@ -403,13 +403,25 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
                   border: `2px solid ${PALETTE.border}`,
                 }}>✓</div>
               )}
-              <span style={{ fontSize: 20 }}>{t.icon}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t.name}
                 </div>
-                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: active ? '#000' : PALETTE.textDim, opacity: 0.8 }}>
-                  LV{t.difficulty} · +{DIFFICULTY_POINTS[t.difficulty].points}
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, marginTop: 3 }}>
+                  <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11, color: active ? '#555' : PALETTE.textDim }}>
+                    對應指標：
+                  </span>
+                  {t.maps.map((indId, idx) => {
+                    const ind = INDICATORS.find(i => i.id === indId);
+                    const stage = ind ? STAGES.find(s => s.id === ind.stage) : null;
+                    if (!ind || !stage) return null;
+                    return (
+                      <React.Fragment key={indId}>
+                        {idx > 0 && <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11, color: active ? '#555' : PALETTE.textDim }}>,</span>}
+                        <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11, color: active ? '#333' : stage.color, fontWeight: 700 }}>#{indId}</span>
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
               </div>
             </div>
