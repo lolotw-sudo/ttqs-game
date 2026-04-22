@@ -179,6 +179,9 @@
         return () => window.__playersRef.off('value');
       }, []);
 
+      // 切換畫面時捲回頂部
+      useEffect(() => { window.scrollTo(0, 0); }, [screen]);
+
       // 記錄玩家所在畫面
       useEffect(() => {
         if (!currentPlayerId || !dbLoaded) return;
