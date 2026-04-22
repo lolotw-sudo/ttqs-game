@@ -378,6 +378,12 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
         {EVIDENCE_TYPES.map(t => {
           const active = typeIds.includes(t.id);
           const hovered = hoveredTypeId === t.id;
+          const allP = t.maps.every(indId => {
+            const ind = INDICATORS.find(i => i.id === indId);
+            return ind && ind.stage === 'P';
+          });
+          const role = allP ? '學系代表' : '培訓師';
+          const roleColor = allP ? PALETTE.cyan : PALETTE.purple;
           return (
             <div key={t.id}
               onClick={() => toggleType(t.id)}
@@ -388,12 +394,18 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
                 color: active ? '#000' : PALETTE.text,
                 border: `2px solid ${active ? PALETTE.gold : hovered ? PALETTE.cyan : PALETTE.border}`,
                 boxShadow: pixelShadow(PALETTE.shadow, active ? 4 : hovered ? 3 : 2),
-                padding: '8px 10px', cursor: 'pointer',
+                padding: '8px 10px', paddingTop: 20, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
                 transform: active ? 'translate(-1px,-1px)' : 'none',
                 position: 'relative',
                 transition: 'background 80ms, border-color 80ms',
               }}>
+              {/* 角色標籤（右上角） */}
+              <div style={{
+                position: 'absolute', top: 4, right: 6,
+                fontFamily: "'DotGothic16', monospace", fontSize: 10,
+                color: active ? '#555' : roleColor,
+              }}>{role}</div>
               {active && (
                 <div style={{
                   position: 'absolute', top: -6, right: -6,
