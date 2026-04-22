@@ -7,23 +7,8 @@ function ScreenMap({ state, uploads, team, playerName, onOpenStage, onOpenUpload
       {/* ========= 頂部玩家狀態 ========= */}
       <PlayerHUD state={state} team={team} playerName={playerName} onOpenProfile={onOpenProfile} onOpenAchievements={onOpenAchievements} />
 
-      {/* ========= 主行動按鈕 ========= */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0 32px' }}>
-        <div style={{ position: 'relative' }}>
-          <PixelButton size="lg" color={PALETTE.gold} onClick={onOpenUpload}>
-            ⚔ 上傳新佐證資料
-          </PixelButton>
-          <div style={{
-            position: 'absolute', top: -14, right: -14,
-            background: PALETTE.red, color: '#fff',
-            fontFamily: "'Press Start 2P', monospace", fontSize: 9,
-            border: `2px solid ${PALETTE.border}`, padding: '4px 6px',
-            animation: 'wiggle 1.2s steps(4) infinite',
-          }}>
-            NEW
-          </div>
-        </div>
-      </div>
+      {/* ========= 上傳卡片 ========= */}
+      <UploadCard state={state} onOpenUpload={onOpenUpload} />
 
       {/* ========= 任務路徑（PDDRO）========= */}
       <div style={{ marginBottom: 14 }}>
@@ -64,6 +49,90 @@ function ScreenMap({ state, uploads, team, playerName, onOpenStage, onOpenUpload
   );
 }
 
+// ========== 上傳卡片 ==========
+function UploadCard({ state, onOpenUpload }) {
+  const [btnHovered, setBtnHovered] = useState(false);
+
+  const nearestInd =
+    INDICATORS.find(i => state.indicatorStatus[i.id] === 'partial') ||
+    INDICATORS.find(i => state.indicatorStatus[i.id] === 'locked');
+
+  let hintText;
+  if (!nearestInd) {
+    hintText = '所有指標蒐集完成！繼續精進吧 🏆';
+  } else {
+    const needCount = state.indicatorStatus[nearestInd.id] === 'partial' ? 1 : 2;
+    hintText = `再上傳 ${needCount} 筆可解鎖『${nearestInd.name}』✨`;
+  }
+
+  return (
+    <>
+      <style>{`
+        @keyframes goldPulse {
+          0%, 100% { box-shadow: 0 0 8px 2px rgba(255,215,0,0.25); }
+          50%       { box-shadow: 0 0 22px 7px rgba(255,215,0,0.55); }
+        }
+      `}</style>
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a3e, #2a1a5e)',
+        border: '2px solid #ffd700',
+        borderRadius: 8,
+        padding: '20px 24px',
+        margin: '20px 0 32px',
+        animation: 'goldPulse 2.4s ease-in-out infinite',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+      }}>
+        {/* 圖示 */}
+        <div style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>📁</div>
+
+        {/* 文字區 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: PALETTE.text }}>
+              上傳佐證資料
+            </span>
+            <span style={{
+              background: PALETTE.red, color: '#fff',
+              fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+              padding: '3px 6px', borderRadius: 2,
+              animation: 'wiggle 1.2s steps(4) infinite',
+            }}>NEW</span>
+          </div>
+          <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+            {hintText}
+          </div>
+        </div>
+
+        {/* 主按鈕 */}
+        <button
+          onMouseEnter={() => setBtnHovered(true)}
+          onMouseLeave={() => setBtnHovered(false)}
+          onClick={onOpenUpload}
+          style={{
+            background: '#ffd700',
+            color: '#0a0a1a',
+            border: 'none',
+            borderRadius: 4,
+            padding: '14px 28px',
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 14,
+            cursor: 'pointer',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
+            transform: btnHovered ? 'translateY(-1px)' : 'translateY(0)',
+            filter: btnHovered ? 'brightness(1.1)' : 'brightness(1)',
+            transition: 'transform 120ms ease, filter 120ms ease',
+          }}
+        >
+          ＋ 立即上傳
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ========== 玩家 HUD ==========
 function PlayerHUD({ state, team, playerName, onOpenProfile, onOpenAchievements }) {
   const teamData = TEAMS.find(t => t.id === team);
@@ -85,30 +154,22 @@ function PlayerHUD({ state, team, playerName, onOpenProfile, onOpenAchievements 
 
         {/* 名稱與等級條 */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: PALETTE.text }}>
-              {playerName || '???'}
-            </span>
-            <span style={{
-              background: PALETTE.gold, color: '#000',
-              fontFamily: "'Press Start 2P', monospace", fontSize: 9,
-              padding: '3px 7px', border: `2px solid ${PALETTE.border}`,
-            }}>
-              LV.{state.level}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
             {teamData && (
               <span style={{
-                background: teamData.color + '22',
-                color: teamData.color,
-                border: `2px solid ${teamData.color}`,
-                fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                padding: '3px 8px',
+                background: teamData.color,
+                color: '#fff',
+                fontFamily: "'Press Start 2P', monospace", fontSize: 9,
+                padding: '4px 10px', borderRadius: 4,
               }}>
                 {teamData.emoji} {teamData.name}
               </span>
             )}
-            <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.textDim }}>
-              人資訓練專員
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 16, color: PALETTE.text }}>
+              {playerName || '???'}
+            </span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>
+              lv.{state.level}
             </span>
           </div>
           <StatBar value={state.levelPoints} max={state.levelMax}
