@@ -186,9 +186,11 @@
                 : [],
             }));
 
-          // 若 Firebase 有舊版數字 key（0,1,2…），一次性遷移為 ID key
-          if (val && !Array.isArray(val)) {
-            const numericKeys = Object.keys(val).filter(k => /^\d{1,4}$/.test(k));
+          // 若 Firebase 資料是 array 格式或含數字 key（舊版殘留），一次性遷移為 ID key
+          if (val && normalized.length > 0) {
+            const numericKeys = Array.isArray(val)
+              ? val.map((_, i) => String(i))
+              : Object.keys(val).filter(k => /^\d{1,4}$/.test(k));
             if (numericKeys.length > 0) {
               const updates = {};
               normalized.forEach(p => { updates[p.id] = p; });
