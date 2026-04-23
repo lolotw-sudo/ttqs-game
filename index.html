@@ -176,13 +176,28 @@
               }
             } catch {}
           }
-          const arr = val ? (Array.isArray(val) ? val : Object.values(val)) : [];
-          setPlayers(arr.map(p => ({
-            ...p,
-            uploads: p.uploads
-              ? (Array.isArray(p.uploads) ? p.uploads : Object.values(p.uploads))
-              : [],
-          })));
+          const raw = val ? (Array.isArray(val) ? val : Object.values(val)) : [];
+          const normalized = raw
+            .filter(p => p && p.id)
+            .map(p => ({
+              ...p,
+              uploads: p.uploads
+                ? (Array.isArray(p.uploads) ? p.uploads : Object.values(p.uploads))
+                : [],
+            }));
+
+          // 若 Firebase 有舊版數字 key（0,1,2…），一次性遷移為 ID key
+          if (val && !Array.isArray(val)) {
+            const numericKeys = Object.keys(val).filter(k => /^\d{1,4}$/.test(k));
+            if (numericKeys.length > 0) {
+              const updates = {};
+              normalized.forEach(p => { updates[p.id] = p; });
+              numericKeys.forEach(k => { updates[k] = null; });
+              window.__playersRef.update(updates);
+            }
+          }
+
+          setPlayers(normalized);
           setDbLoaded(true);
         });
         return () => window.__playersRef.off('value');
