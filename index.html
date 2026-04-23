@@ -194,8 +194,9 @@
             } catch {}
           }
           const raw = val ? (Array.isArray(val) ? val : Object.values(val)) : [];
+          const seen = new Set();
           const normalized = raw
-            .filter(p => p && p.id)
+            .filter(p => p && p.id && !seen.has(p.id) && seen.add(p.id))
             .map(p => ({
               ...p,
               uploads: p.uploads
@@ -262,7 +263,6 @@
           lastScreen: 'map',
         };
         savePlayer(newPlayer);
-        setPlayers(prev => [...prev, newPlayer]);
         setCurrentPlayerId(newPlayer.id);
         setScreen('map');
       }
