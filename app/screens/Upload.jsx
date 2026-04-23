@@ -283,13 +283,24 @@ function _Legacy_StepPickCourse({ courseId, onPick }) {
 }
 
 // ========== Step 2: 拖拉檔案 + 多選類型 ==========
+const MAX_FILE_MB = 5;
+
 function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, dragOver, setDragOver, onNext, onBack }) {
   const fileInputRef = React.useRef(null);
   const [hoveredTypeId, setHoveredTypeId] = React.useState(null);
-  const canNext = fileName && typeIds.length > 0;
+  const [fileSizeError, setFileSizeError] = React.useState(null);
+  const canNext = fileName && typeIds.length > 0 && !fileSizeError;
 
   function handleFile(file) {
     if (!file) return;
+    setFileSizeError(null);
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      setFileSizeError(`檔案 ${mb} MB 超過 ${MAX_FILE_MB} MB 上限，請壓縮後再上傳。`);
+      setFileName('');
+      onFileData(null);
+      return;
+    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => onFileData(e.target.result);
@@ -357,6 +368,18 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
           </>
         )}
       </div>
+
+      {/* 檔案大小錯誤 */}
+      {fileSizeError && (
+        <div style={{
+          background: '#3d0000', border: '2px solid #ff5e5b',
+          borderRadius: 4, padding: '10px 16px', marginBottom: 16,
+          fontFamily: "'DotGothic16', monospace", fontSize: 14,
+          color: '#ff5e5b',
+        }}>
+          ⚠ {fileSizeError}
+        </div>
+      )}
 
       {/* 類型選擇（多選） */}
       <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 15, color: PALETTE.text, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
