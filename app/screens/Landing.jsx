@@ -1,9 +1,19 @@
 // 成員選擇大廳：列出所有成員卡片 + 新增成員入口
 function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport }) {
   const isEmpty = players.length === 0;
+  const [teamView, setTeamView] = useState(null);
+
+  const teamViewData = teamView ? TEAMS.find(t => t.id === teamView) : null;
 
   return (
     <div style={{ padding: '40px 28px 60px', maxWidth: 1280, margin: '0 auto' }}>
+      {teamViewData && (
+        <TeamAchievementModal
+          team={teamViewData}
+          players={players}
+          onClose={() => setTeamView(null)}
+        />
+      )}
       {/* 標題 */}
       <div style={{ textAlign: 'center', marginBottom: 12 }}>
         <div style={{
@@ -80,9 +90,9 @@ function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport 
               <div style={{
                 fontFamily: "'DotGothic16', monospace",
                 fontSize: 14, color: PALETTE.textDim,
-              }}>各戰隊成員上傳合計 · 19 項指標達成狀況</div>
+              }}>各戰隊成員上傳合計 · 19 項指標達成狀況 · 點擊戰隊名稱查看成就地圖</div>
             </div>
-            <TeamRanking players={players} />
+            <TeamRanking players={players} onTeamClick={setTeamView} />
           </div>
         </>
       )}
@@ -288,7 +298,7 @@ function NewMemberCard({ onClick }) {
 }
 
 // ── 戰隊積分排名表 ──
-function TeamRanking({ players }) {
+function TeamRanking({ players, onTeamClick }) {
   const teamStats = useMemo(() => {
     return TEAMS.map(team => {
       const allUploads = players
@@ -330,10 +340,17 @@ function TeamRanking({ players }) {
               const rank = rankMap[team.id];
               const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
               return (
-                <th key={team.id} style={{
-                  ...cellBase(team.color + '18'), textAlign: 'center',
-                  borderTop: `3px solid ${team.color}`, padding: '10px 6px',
-                }}>
+                <th key={team.id}
+                  onClick={() => onTeamClick && onTeamClick(team.id)}
+                  style={{
+                    ...cellBase(team.color + '18'), textAlign: 'center',
+                    borderTop: `3px solid ${team.color}`, padding: '10px 6px',
+                    cursor: 'pointer',
+                    transition: 'background 120ms',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = team.color + '30'}
+                  onMouseLeave={e => e.currentTarget.style.background = team.color + '18'}
+                >
                   <div style={{ fontSize: 20, lineHeight: 1 }}>{team.emoji}</div>
                   <div style={{
                     fontFamily: "'Press Start 2P', monospace",
@@ -352,6 +369,10 @@ function TeamRanking({ players }) {
                     fontFamily: "'Press Start 2P', monospace",
                     fontSize: 9, color: PALETTE.textDim, marginTop: 3,
                   }}>{medal}</div>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace",
+                    fontSize: 7, color: team.color, marginTop: 6, opacity: 0.8,
+                  }}>▶ 查看</div>
                 </th>
               );
             })}
@@ -418,6 +439,93 @@ function TeamRanking({ players }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ── 戰隊成就地圖 Modal ──
+function TeamAchievementModal({ team, players, onClose }) {
+  const [selected, setSelected] = useState(null);
+
+  const teamPlayers = useMemo(
+    () => players.filter(p => p.team === team.id),
+    [players, team.id]
+  );
+
+  // 合併所有成員的 uploads，附加 _playerName 供 IndicatorDetail 顯示
+  const allUploads = useMemo(
+    () => teamPlayers.flatMap(p => (p.uploads || []).map(u => ({ ...u, _playerName: p.name }))),
+    [teamPlayers]
+  );
+
+  // uploadId → 成員名稱
+  const playerMap = useMemo(() => {
+    const map = {};
+    allUploads.forEach(u => { map[u.id] = u._playerName; });
+    return map;
+  }, [allUploads]);
+
+  const state = useMemo(() => computeState(allUploads), [allUploads]);
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 80,
+      background: 'rgba(10,10,26,0.96)',
+      overflowY: 'auto',
+    }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 28px 60px' }}>
+        {/* 標頭 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
+          <PixelButton size="sm" color={PALETTE.panelLt} textColor={PALETTE.text} onClick={onClose}>
+            ✕ 關閉
+          </PixelButton>
+          <span style={{ fontSize: 26, lineHeight: 1 }}>{team.emoji}</span>
+          <h1 style={{
+            fontFamily: "'Press Start 2P', monospace", fontSize: 13,
+            color: team.color, margin: 0,
+          }}>{team.name} · 成就地圖</h1>
+          <div style={{ flex: 1 }} />
+          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: PALETTE.gold }}>
+            {state.doneCount}/19 完成 · {state.partialCount} 部分
+          </div>
+        </div>
+
+        {/* 成員列表 */}
+        <div style={{
+          display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20,
+        }}>
+          {teamPlayers.length === 0 ? (
+            <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.textDim }}>
+              此戰隊目前沒有成員
+            </div>
+          ) : teamPlayers.map(p => (
+            <div key={p.id} style={{
+              fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+              background: PALETTE.panelLt, color: PALETTE.text,
+              border: `1px solid ${team.color}40`,
+              padding: '4px 10px',
+            }}>👤 {p.name}</div>
+          ))}
+        </div>
+
+        {/* 指標格 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+          {INDICATORS.map(ind => (
+            <IndicatorCard key={ind.id} ind={ind} state={state} onClick={() => setSelected(ind)} />
+          ))}
+        </div>
+
+        {/* 指標詳情 modal（含成員名稱） */}
+        {selected && (
+          <IndicatorDetail
+            indicator={selected}
+            state={state}
+            uploads={allUploads}
+            playerMap={playerMap}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }

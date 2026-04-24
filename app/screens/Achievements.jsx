@@ -1,3 +1,54 @@
+// ── 指標卡片（可重複使用）──
+function IndicatorCard({ ind, state, onClick }) {
+  const status = state.indicatorStatus[ind.id];
+  const count  = state.perInd[ind.id].count;
+  const stage  = STAGES.find(s => s.id === ind.stage);
+  const units  = [...new Set(
+    EVIDENCE_TYPES.filter(t => t.maps.includes(ind.id)).map(t => t.unit).filter(Boolean)
+  )];
+  return (
+    <PixelBox hover onClick={onClick}
+      color={status === 'done' ? '#244a2e' : status === 'partial' ? '#4a3d1a' : PALETTE.panel}
+      padding={14}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <IndicatorChip indicator={ind} status={status} size="md" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+            background: stage.color, color: '#000',
+            padding: '2px 5px', border: `2px solid ${PALETTE.border}`, display: 'inline-block',
+          }}>{stage.subtitle}</div>
+          <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 15, color: PALETTE.text, fontWeight: 700, marginTop: 6, lineHeight: 1.2 }}>
+            指標{ind.id}・{ind.name}
+          </div>
+          <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, marginTop: 4, lineHeight: 1.3 }}>
+            {ind.plain}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+            {units.map(u => (
+              <span key={u} style={{
+                fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                background: PALETTE.panelLt, color: PALETTE.cyan,
+                padding: '2px 6px', border: `1px solid ${PALETTE.line}`,
+              }}>{u}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: 10, paddingTop: 10, borderTop: `2px dashed ${PALETTE.line}`,
+        fontFamily: "'Press Start 2P', monospace", fontSize: 9,
+      }}>
+        <span style={{ color: PALETTE.textDim }}>{count} 筆資料</span>
+        <span style={{ color: status === 'done' ? PALETTE.green : status === 'partial' ? PALETTE.gold : PALETTE.textDim }}>
+          {status === 'done' ? '✔ 達成' : status === 'partial' ? '◐ 部分' : '◻ 未達成'}
+        </span>
+      </div>
+    </PixelBox>
+  );
+}
+
 // 成就/指標詳情：19 項指標完整狀態 + 白話說明 + 對應資料
 function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpload, focusStage = null }) {
   const [stageFilter, setStageFilter] = useState(focusStage || 'ALL');
@@ -37,60 +88,9 @@ function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpl
 
       {/* 指標格 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
-        {visibleIndicators.map(ind => {
-          const status = state.indicatorStatus[ind.id];
-          const count = state.perInd[ind.id].count;
-          const stage = STAGES.find(s => s.id === ind.stage);
-          const units = [...new Set(
-            EVIDENCE_TYPES.filter(t => t.maps.includes(ind.id)).map(t => t.unit).filter(Boolean)
-          )];
-          return (
-            <PixelBox key={ind.id} hover onClick={() => setSelected(ind)}
-              color={status === 'done' ? '#244a2e' : status === 'partial' ? '#4a3d1a' : PALETTE.panel}
-              padding={14}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <IndicatorChip indicator={ind} status={status} size="md" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                    background: stage.color, color: '#000',
-                    padding: '2px 5px', border: `2px solid ${PALETTE.border}`, display: 'inline-block',
-                  }}>
-                    {stage.subtitle}
-                  </div>
-                  <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 15, color: PALETTE.text, fontWeight: 700, marginTop: 6, lineHeight: 1.2 }}>
-                    指標{ind.id}・{ind.name}
-                  </div>
-                  <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, marginTop: 4, lineHeight: 1.3 }}>
-                    {ind.plain}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-                    {units.map(u => (
-                      <span key={u} style={{
-                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                        background: PALETTE.panelLt, color: PALETTE.cyan,
-                        padding: '2px 6px',
-                        border: `1px solid ${PALETTE.line}`,
-                      }}>{u}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginTop: 10, paddingTop: 10, borderTop: `2px dashed ${PALETTE.line}`,
-                fontFamily: "'Press Start 2P', monospace", fontSize: 9,
-              }}>
-                <span style={{ color: PALETTE.textDim }}>{count} 筆資料</span>
-                <span style={{
-                  color: status === 'done' ? PALETTE.green : status === 'partial' ? PALETTE.gold : PALETTE.textDim,
-                }}>
-                  {status === 'done' ? '✔ 達成' : status === 'partial' ? '◐ 部分' : '◻ 未達成'}
-                </span>
-              </div>
-            </PixelBox>
-          );
-        })}
+        {visibleIndicators.map(ind => (
+          <IndicatorCard key={ind.id} ind={ind} state={state} onClick={() => setSelected(ind)} />
+        ))}
       </div>
 
       {/* 詳情 modal */}
@@ -118,7 +118,7 @@ function FilterPill({ children, active, color, onClick }) {
   );
 }
 
-function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload }) {
+function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload, playerMap = null }) {
   const stage = STAGES.find(s => s.id === indicator.stage);
   const status = state.indicatorStatus[indicator.id];
   const relevantUploads = uploads.filter(u => {
@@ -195,7 +195,7 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
                   padding: '10px 14px', background: PALETTE.panel,
                   border: `2px solid ${PALETTE.border}`, marginBottom: 6, alignItems: 'center',
                 }}>
-                  {/* 第一欄：佐證類型標籤 */}
+                  {/* 第一欄：佐證類型標籤 + 成員名稱（戰隊視角） */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {matching.map(m => (
                       <span key={m.id} style={{
@@ -205,6 +205,13 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
                         display: 'block',
                       }}>{m.name}</span>
                     ))}
+                    {playerMap?.[u.id] && (
+                      <span style={{
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                        color: PALETTE.gold, marginTop: 2,
+                        display: 'block',
+                      }}>👤 {playerMap[u.id]}</span>
+                    )}
                   </div>
 
                   {/* 第二欄：原始檔名 / 更新檔名 */}
@@ -344,4 +351,4 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
   );
 }
 
-Object.assign(window, { ScreenAchievements });
+Object.assign(window, { ScreenAchievements, IndicatorCard, IndicatorDetail });
