@@ -128,11 +128,14 @@ function ScreenTeamReport({ players, onClose }) {
   }
 
   async function batchDownloadZip() {
-    if (zipCount === 0) { downloadCSV(); return; }
+    if (zipCount === 0) {
+      alert('⚠️ 目前沒有可下載的檔案。\n\n上傳佐證資料時請選取實際檔案，才能使用批次下載功能。\n（命名清單 CSV 隨時可下載）');
+      return;
+    }
     setDownloading(true);
+    let failCount = 0;
     try {
       const zip = new JSZip();
-      // 每個 (upload × indicator) 獨立產出一個檔案
       const seenPairs = new Set();
       const nameCount = {};
       const fetchTasks = [];
@@ -148,11 +151,16 @@ function ScreenTeamReport({ players, onClose }) {
         const name = `${base}_${seq}.${ext}`;
         fetchTasks.push(
           fetch(e.upload.fileUrl)
-            .then(r => r.blob())
+            .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
             .then(blob => zip.file(name, blob))
+            .catch(() => { failCount++; })
         );
       });
       await Promise.all(fetchTasks);
+      if (failCount === fetchTasks.length) {
+        alert('❌ 所有檔案下載失敗，請確認網路連線或稍後再試。');
+        return;
+      }
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -160,6 +168,11 @@ function ScreenTeamReport({ players, onClose }) {
       a.download = `TTQS_佐證資料${selectedTeam !== 'all' ? '_' + (TEAMS.find(t => t.id === selectedTeam)?.name || '') : ''}.zip`;
       a.click();
       URL.revokeObjectURL(url);
+      if (failCount > 0) {
+        alert(`⚠️ 已下載 ZIP，但有 ${failCount} 個檔案無法取得，已略過。`);
+      }
+    } catch (err) {
+      alert('❌ 壓縮失敗，請稍後再試。');
     } finally {
       setDownloading(false);
     }
@@ -374,13 +387,14 @@ function ScreenTeamReport({ players, onClose }) {
                           <div
                             onClick={() => requirePassword(() => {
                               fetch(e.upload.fileUrl)
-                                .then(r => r.blob())
+                                .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
                                 .then(blob => {
                                   const url = URL.createObjectURL(blob);
                                   const a = document.createElement('a');
                                   a.href = url; a.download = name; a.click();
                                   URL.revokeObjectURL(url);
-                                });
+                                })
+                                .catch(() => alert('❌ 檔案下載失敗，請確認網路連線或稍後再試。'));
                             })}
                             style={{
                               fontFamily: "'Press Start 2P', monospace", fontSize: 8,
@@ -391,10 +405,12 @@ function ScreenTeamReport({ players, onClose }) {
                             }}
                           >↓ 下載</div>
                         ) : (
-                          <div style={{
-                            fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                            color: PALETTE.textDim,
-                          }}>無原檔</div>
+                          <div
+                            title="此筆資料未上傳實際檔案，無法下載"
+                            style={{
+                              fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                              color: PALETTE.textDim, cursor: 'default',
+                            }}>無原檔</div>
                         )}
                       </div>
                     </div>

@@ -233,13 +233,23 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
 
                   {/* 第三欄：檢視 + 刪除按鈕 */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
-                    {u.fileData ? (
+                    {u.fileUrl ? (
                       <div
                         onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = u.fileData;
-                          a.download = suggestedName;
-                          a.click();
+                          fetch(u.fileUrl)
+                            .then(r => {
+                              if (!r.ok) throw new Error('下載失敗');
+                              return r.blob();
+                            })
+                            .then(blob => {
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = suggestedName;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            })
+                            .catch(() => alert('❌ 檔案下載失敗，請稍後再試或確認網路連線'));
                         }}
                         style={{
                           fontFamily: "'Press Start 2P', monospace", fontSize: 8,
@@ -249,10 +259,14 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
                         }}
                       >↓ 檢視</div>
                     ) : (
-                      <div style={{
-                        fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                        color: PALETTE.textDim, whiteSpace: 'nowrap', textAlign: 'center',
-                      }}>無原檔</div>
+                      <div
+                        title="此筆資料未上傳實際檔案，無法下載"
+                        style={{
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                          color: PALETTE.textDim, whiteSpace: 'nowrap', textAlign: 'center',
+                          border: `2px solid ${PALETTE.line}`,
+                          padding: '6px 10px', cursor: 'default',
+                        }}>無原檔</div>
                     )}
                     {onDeleteUpload && (
                       <div
