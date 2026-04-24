@@ -288,6 +288,14 @@ function RecentActivity({ uploads }) {
           const ts = tids.map(id => EVIDENCE_TYPES.find(x => x.id === id)).filter(Boolean);
           if (!ts.length) return null;
           const hardest = ts.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), ts[0]);
+
+          // 取指標編號與階段色
+          const indIds = hardest.maps || [];
+          const firstInd = INDICATORS.find(ind => ind.id === indIds[0]);
+          const stage = firstInd ? STAGES.find(s => s.id === firstInd.stage) : null;
+          const stageColor = stage?.color || '#46468a';
+          const indLabel = indIds.slice(0, 4).map(id => `#${id}`).join(' ');
+
           return (
             <div key={u.id} style={{
               display: 'grid', gridTemplateColumns: 'auto 1fr auto',
@@ -307,7 +315,39 @@ function RecentActivity({ uploads }) {
                   {u.courseName || '(未指定課程)'} · {u.ts}
                 </div>
               </div>
-              <DifficultyBadge level={hardest.difficulty} compact />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: stageColor, color: '#000',
+                  borderRadius: 4, padding: '3px 8px',
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {indLabel} · {hardest.name}
+                </span>
+                {u.fileData ? (
+                  <button
+                    onClick={() => window.open(u.fileData, '_blank')}
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${PALETTE.cyan}`,
+                      color: PALETTE.cyan,
+                      borderRadius: 3, padding: '3px 10px',
+                      fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                      cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ▶ 檢視
+                  </button>
+                ) : (
+                  <span style={{
+                    color: PALETTE.textDim,
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                    padding: '3px 10px',
+                  }}>無檔案</span>
+                )}
+              </div>
             </div>
           );
         })}
