@@ -101,6 +101,7 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script>
     firebase.initializeApp({
       apiKey: "AIzaSyCBZhX-WRpIic4LMEe2XFoG0xb0rPZAI9o",
@@ -112,6 +113,7 @@
       appId: "1:244519103751:web:c19540f6ae59213b1569a2",
     });
     window.__playersRef = firebase.database().ref('players');
+    window.__storage = firebase.storage();
   </script>
 
   <script type="text/babel" src="./app/data.jsx"></script>
@@ -136,35 +138,8 @@
       "bgIntensity": 50
     }/*EDITMODE-END*/;
 
-    // fileData 只存 localStorage，不進 Firebase（避免 Write too large）
-    // 回傳 true=成功 / 'quota'=空間不足 / 'error'=其他失敗
-    function cacheFileData(playerId, uploadId, fileData) {
-      try {
-        localStorage.setItem(`ttqs_fd_${playerId}_${uploadId}`, fileData);
-        return true;
-      } catch (e) {
-        console.warn('[TTQS] fileData 儲存失敗:', e);
-        if (e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22)) {
-          return 'quota';
-        }
-        return 'error';
-      }
-    }
-    function loadFileData(playerId, uploadId) {
-      try { return localStorage.getItem(`ttqs_fd_${playerId}_${uploadId}`) || undefined; } catch { return undefined; }
-    }
-    function mergeFileData(players) {
-      return players.map(p => ({
-        ...p,
-        uploads: p.uploads.map(u => ({ ...u, fileData: loadFileData(p.id, u.id) })),
-      }));
-    }
-    function stripFileData(player) {
-      return { ...player, uploads: player.uploads.map(({ fileData, ...rest }) => rest) };
-    }
-
     function savePlayer(player) {
-      window.__playersRef.child(player.id).set(stripFileData(player)).catch(console.error);
+      window.__playersRef.child(player.id).set(player).catch(console.error);
     }
     function removePlayer(id) {
       window.__playersRef.child(id).remove().catch(console.error);
@@ -232,12 +207,12 @@
           // 若含數字 key（舊版殘留），一次性遷移為 ID key
           if (numericKeys.length > 0) {
             const updates = {};
-            normalized.forEach(p => { updates[p.id] = stripFileData(p); });
+            normalized.forEach(p => { updates[p.id] = p; });
             numericKeys.forEach(k => { updates[k] = null; });
             window.__playersRef.update(updates).catch(console.error);
           }
 
-          setPlayers(mergeFileData(normalized));
+          setPlayers(normalized);
           setDbLoaded(true);
         });
         return () => window.__playersRef.off('value');
@@ -289,17 +264,12 @@
 
       function handleUploadConfirm(upload, delta) {
         const prevState = state;
-        let fileCacheWarn = null; // null=無附檔 / 'quota' / 'error'
-        if (upload.fileData) {
-          const result = cacheFileData(currentPlayerId, upload.id, upload.fileData);
-          if (result !== true) fileCacheWarn = result;
-        }
         const newUploads = [...uploads, upload];
         const updatedPlayer = { ...currentPlayer, uploads: newUploads };
         savePlayer(updatedPlayer);
         setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
         const newState = computeState(newUploads);
-        setPendingCelebrate({ delta, state: newState, prevState, fileCacheWarn });
+        setPendingCelebrate({ delta, state: newState, prevState });
         setScreen('celebrate');
       }
 
@@ -425,7 +395,7 @@
             )}
             {currentPlayer && screen === 'upload' && (
               <ScreenUpload
-                state={state} uploads={uploads}
+                state={state} uploads={uploads} playerId={currentPlayerId}
                 onCancel={() => setScreen('map')}
                 onConfirm={handleUploadConfirm}
               />
@@ -441,7 +411,6 @@
                   delta={pendingCelebrate.delta}
                   state={pendingCelebrate.state}
                   prevState={pendingCelebrate.prevState}
-                  fileCacheWarn={pendingCelebrate.fileCacheWarn}
                   onDone={() => { setPendingCelebrate(null); setScreen('map'); }}
                 />
               </>

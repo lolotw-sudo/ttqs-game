@@ -4,14 +4,16 @@
 // Step 3: 系統自動 mapping 預覽 + 積分預告
 // Step 4: 確認送出 → Celebration
 
-function ScreenUpload({ state, uploads, onCancel, onConfirm }) {
+function ScreenUpload({ state, uploads, playerId, onCancel, onConfirm }) {
   const [step, setStep] = useState(1);
   const [courseCode, setCourseCode] = useState('');
   const [courseName, setCourseName] = useState('');
   const [fileName, setFileName] = useState('');
-  const [fileData, setFileData] = useState(null);
+  const [fileObject, setFileObject] = useState(null); // 實際 File 物件
   const [typeIds, setTypeIds] = useState([]);
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   const courseReady = courseCode.trim() && courseName.trim();
 
@@ -24,11 +26,30 @@ function ScreenUpload({ state, uploads, onCancel, onConfirm }) {
     courseName: courseName.trim(),
     typeIds,
     fileName: fileName || '(未命名)',
-    fileData: fileData || null,
     ts,
   } : null;
 
   const delta = draftUpload ? computeUploadDelta(uploads, draftUpload) : null;
+
+  async function handleConfirm() {
+    if (!draftUpload) return;
+    setUploading(true);
+    setUploadError(null);
+    let fileUrl = null;
+    if (fileObject) {
+      try {
+        const storageRef = window.__storage.ref(`uploads/${draftUpload.id}/${fileObject.name}`);
+        await storageRef.put(fileObject);
+        fileUrl = await storageRef.getDownloadURL();
+      } catch (e) {
+        console.error('[TTQS] Storage upload failed:', e);
+        setUploadError('檔案上傳雲端失敗，請重試。若持續失敗，請確認 Firebase Storage 規則已設為開放讀寫。');
+        setUploading(false);
+        return;
+      }
+    }
+    onConfirm({ ...draftUpload, fileUrl }, delta);
+  }
 
   return (
     <div style={{ padding: '24px 28px 60px', maxWidth: 1100, margin: '0 auto' }}>
@@ -47,6 +68,25 @@ function ScreenUpload({ state, uploads, onCancel, onConfirm }) {
         <StepIndicator step={step} total={3} />
       </div>
 
+      {/* 上傳中 overlay */}
+      {uploading && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(10,10,26,0.88)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 20,
+        }}>
+          <div style={{
+            fontFamily: "'Press Start 2P', monospace", fontSize: 18,
+            color: PALETTE.gold, animation: 'blink 1s steps(2) infinite',
+          }}>☁ 上傳至雲端中…</div>
+          <div style={{
+            fontFamily: "'DotGothic16', monospace", fontSize: 14,
+            color: PALETTE.textDim,
+          }}>請稍候，正在將檔案儲存到 Firebase Storage</div>
+        </div>
+      )}
+
       {/* 內容區 */}
       <PixelBox color={PALETTE.bgAlt} padding={28}>
         {step === 1 && (
@@ -61,7 +101,7 @@ function ScreenUpload({ state, uploads, onCancel, onConfirm }) {
         {step === 2 && (
           <StepPickFile
             fileName={fileName} setFileName={setFileName}
-            onFileData={setFileData}
+            onFileObject={setFileObject}
             typeIds={typeIds} setTypeIds={setTypeIds}
             dragOver={dragOver} setDragOver={setDragOver}
             onNext={() => setStep(3)}
@@ -75,8 +115,9 @@ function ScreenUpload({ state, uploads, onCancel, onConfirm }) {
             fileName={fileName || delta.types.map(t => t.name).join(' + ')}
             delta={delta}
             state={state}
+            uploadError={uploadError}
             onBack={() => setStep(2)}
-            onConfirm={() => onConfirm(draftUpload, delta)}
+            onConfirm={handleConfirm}
           />
         )}
       </PixelBox>
@@ -283,9 +324,9 @@ function _Legacy_StepPickCourse({ courseId, onPick }) {
 }
 
 // ========== Step 2: 拖拉檔案 + 多選類型 ==========
-const MAX_FILE_MB = 5;
+const MAX_FILE_MB = 50;
 
-function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, dragOver, setDragOver, onNext, onBack }) {
+function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds, dragOver, setDragOver, onNext, onBack }) {
   const fileInputRef = React.useRef(null);
   const [hoveredTypeId, setHoveredTypeId] = React.useState(null);
   const [fileSizeError, setFileSizeError] = React.useState(null);
@@ -298,18 +339,11 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
       const mb = (file.size / 1024 / 1024).toFixed(1);
       setFileSizeError(`檔案 ${mb} MB 超過 ${MAX_FILE_MB} MB 上限，請壓縮後再上傳。`);
       setFileName('');
-      onFileData(null);
+      onFileObject(null);
       return;
     }
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => onFileData(e.target.result);
-    reader.onerror = () => {
-      setFileSizeError('檔案讀取失敗，請重新選取或換一個檔案。');
-      setFileName('');
-      onFileData(null);
-    };
-    reader.readAsDataURL(file);
+    onFileObject(file);
   }
 
   function toggleType(id) {
@@ -577,7 +611,7 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
 }
 
 // ========== Step 3: 預覽 mapping + 積分 ==========
-function StepPreview({ courseCode, courseName, types, fileName, delta, state, onBack, onConfirm }) {
+function StepPreview({ courseCode, courseName, types, fileName, delta, state, uploadError, onBack, onConfirm }) {
   const hardestType = types.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), types[0]);
   return (
     <div>
@@ -705,6 +739,17 @@ function StepPreview({ courseCode, courseName, types, fileName, delta, state, on
           +{delta.totalPoints}
         </div>
       </div>
+
+      {/* 上傳錯誤 */}
+      {uploadError && (
+        <div style={{
+          background: '#3d0000', border: '2px solid #ff5e5b',
+          borderRadius: 4, padding: '10px 16px', marginTop: 16,
+          fontFamily: "'DotGothic16', monospace", fontSize: 14, color: '#ff5e5b',
+        }}>
+          ⚠ {uploadError}
+        </div>
+      )}
 
       {/* 按鈕 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 26 }}>

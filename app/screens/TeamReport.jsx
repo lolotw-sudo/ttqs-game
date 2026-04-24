@@ -68,7 +68,7 @@ function ScreenTeamReport({ players, onClose }) {
   const zipCount = useMemo(() => {
     const seen = new Set();
     filtered.forEach(e => {
-      if (e.upload.fileData) seen.add(`${e.upload.id}__${e.indicator.id}`);
+      if (e.upload.fileUrl) seen.add(`${e.upload.id}__${e.indicator.id}`);
     });
     return seen.size;
   }, [filtered]);
@@ -135,8 +135,9 @@ function ScreenTeamReport({ players, onClose }) {
       // 每個 (upload × indicator) 獨立產出一個檔案
       const seenPairs = new Set();
       const nameCount = {};
+      const fetchTasks = [];
       filtered.forEach(e => {
-        if (!e.upload.fileData) return;
+        if (!e.upload.fileUrl) return;
         const pairKey = `${e.upload.id}__${e.indicator.id}`;
         if (seenPairs.has(pairKey)) return;
         seenPairs.add(pairKey);
@@ -145,9 +146,13 @@ function ScreenTeamReport({ players, onClose }) {
         nameCount[base] = (nameCount[base] || 0) + 1;
         const seq = String(nameCount[base]).padStart(3, '0');
         const name = `${base}_${seq}.${ext}`;
-        const base64 = e.upload.fileData.split(',')[1];
-        zip.file(name, base64, { base64: true });
+        fetchTasks.push(
+          fetch(e.upload.fileUrl)
+            .then(r => r.blob())
+            .then(blob => zip.file(name, blob))
+        );
       });
+      await Promise.all(fetchTasks);
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -300,7 +305,7 @@ function ScreenTeamReport({ players, onClose }) {
 
                 {items.map((e, i) => {
                   const name = suggestName(e.upload, e.type, e.indicator, e.teamData);
-                  const hasFile = !!e.upload.fileData;
+                  const hasFile = !!e.upload.fileUrl;
                   return (
                     <div key={`${e.upload.id}-${e.type.id}-${e.indicator.id}`} style={{
                       display: 'grid',
@@ -368,10 +373,14 @@ function ScreenTeamReport({ players, onClose }) {
                         {hasFile ? (
                           <div
                             onClick={() => requirePassword(() => {
-                              const a = document.createElement('a');
-                              a.href = e.upload.fileData;
-                              a.download = name;
-                              a.click();
+                              fetch(e.upload.fileUrl)
+                                .then(r => r.blob())
+                                .then(blob => {
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url; a.download = name; a.click();
+                                  URL.revokeObjectURL(url);
+                                });
                             })}
                             style={{
                               fontFamily: "'Press Start 2P', monospace", fontSize: 8,

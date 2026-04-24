@@ -326,9 +326,9 @@ function RecentActivity({ uploads }) {
                 }}>
                   {indLabel} · {hardest.name}
                 </span>
-                {u.fileData ? (
+                {u.fileUrl ? (
                   <button
-                    onClick={() => window.open(u.fileData, '_blank')}
+                    onClick={() => window.open(u.fileUrl, '_blank')}
                     style={{
                       background: 'transparent',
                       border: `1px solid ${PALETTE.cyan}`,
