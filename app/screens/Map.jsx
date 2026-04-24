@@ -285,7 +285,7 @@ function RecentActivity({ uploads }) {
         )}
         {items.map((u, i) => {
           const tids = getUploadTypeIds(u);
-          const ts = tids.map(id => EVIDENCE_TYPES.find(x => x.id === id)).filter(Boolean);
+          const ts = tids.map(id => resolveType(id)).filter(Boolean);
           if (!ts.length) return null;
           const hardest = ts.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), ts[0]);
 

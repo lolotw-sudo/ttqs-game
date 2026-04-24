@@ -6,7 +6,7 @@ function ScreenProfile({ state, uploads, team, playerName, onClose, onChangeTeam
     totalByStage[s.id] = uploads.filter(u => {
       const tids = getUploadTypeIds(u);
       return tids.some(tid => {
-        const t = EVIDENCE_TYPES.find(x => x.id === tid);
+        const t = resolveType(tid);
         return t && t.maps.some(id => INDICATORS.find(i => i.id === id)?.stage === s.id);
       });
     }).length;
@@ -15,7 +15,7 @@ function ScreenProfile({ state, uploads, team, playerName, onClose, onChangeTeam
   const byDifficulty = [1, 2, 3, 4, 5].map(lv => ({
     lv, count: uploads.filter(u => {
       const tids = getUploadTypeIds(u);
-      const ts = tids.map(tid => EVIDENCE_TYPES.find(x => x.id === tid)).filter(Boolean);
+      const ts = tids.map(tid => resolveType(tid)).filter(Boolean);
       if (!ts.length) return false;
       const hardest = ts.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), ts[0]);
       return hardest.difficulty === lv;
