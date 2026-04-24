@@ -137,8 +137,18 @@
     }/*EDITMODE-END*/;
 
     // fileData 只存 localStorage，不進 Firebase（避免 Write too large）
+    // 回傳 true=成功 / 'quota'=空間不足 / 'error'=其他失敗
     function cacheFileData(playerId, uploadId, fileData) {
-      try { localStorage.setItem(`ttqs_fd_${playerId}_${uploadId}`, fileData); } catch {}
+      try {
+        localStorage.setItem(`ttqs_fd_${playerId}_${uploadId}`, fileData);
+        return true;
+      } catch (e) {
+        console.warn('[TTQS] fileData 儲存失敗:', e);
+        if (e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22)) {
+          return 'quota';
+        }
+        return 'error';
+      }
     }
     function loadFileData(playerId, uploadId) {
       try { return localStorage.getItem(`ttqs_fd_${playerId}_${uploadId}`) || undefined; } catch { return undefined; }
@@ -279,13 +289,17 @@
 
       function handleUploadConfirm(upload, delta) {
         const prevState = state;
-        if (upload.fileData) cacheFileData(currentPlayerId, upload.id, upload.fileData);
+        let fileCacheWarn = null; // null=無附檔 / 'quota' / 'error'
+        if (upload.fileData) {
+          const result = cacheFileData(currentPlayerId, upload.id, upload.fileData);
+          if (result !== true) fileCacheWarn = result;
+        }
         const newUploads = [...uploads, upload];
         const updatedPlayer = { ...currentPlayer, uploads: newUploads };
         savePlayer(updatedPlayer);
         setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
         const newState = computeState(newUploads);
-        setPendingCelebrate({ delta, state: newState, prevState });
+        setPendingCelebrate({ delta, state: newState, prevState, fileCacheWarn });
         setScreen('celebrate');
       }
 
@@ -427,6 +441,7 @@
                   delta={pendingCelebrate.delta}
                   state={pendingCelebrate.state}
                   prevState={pendingCelebrate.prevState}
+                  fileCacheWarn={pendingCelebrate.fileCacheWarn}
                   onDone={() => { setPendingCelebrate(null); setScreen('map'); }}
                 />
               </>

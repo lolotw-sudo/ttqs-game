@@ -304,6 +304,11 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => onFileData(e.target.result);
+    reader.onerror = () => {
+      setFileSizeError('檔案讀取失敗，請重新選取或換一個檔案。');
+      setFileName('');
+      onFileData(null);
+    };
     reader.readAsDataURL(file);
   }
 

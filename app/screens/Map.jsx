@@ -341,11 +341,15 @@ function RecentActivity({ uploads }) {
                     ▶ 檢視
                   </button>
                 ) : (
-                  <span style={{
-                    color: PALETTE.textDim,
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                    padding: '3px 10px',
-                  }}>無檔案</span>
+                  <span
+                    title="檔案儲存於上傳當時的瀏覽器本機，此裝置或瀏覽器無法檢視"
+                    style={{
+                      color: PALETTE.textDim,
+                      fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                      padding: '3px 8px', cursor: 'help',
+                      border: `1px dashed ${PALETTE.line}`, borderRadius: 3,
+                    }}
+                  >⚠ 無本機檔</span>
                 )}
               </div>
             </div>

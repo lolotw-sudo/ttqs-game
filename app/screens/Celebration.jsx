@@ -1,6 +1,6 @@
 // 上傳完成慶祝動畫
 // 階段：1 閃光 → 2 加分飛進 → 3 指標卡片翻轉 → 4 等級提升（如果）→ 5 回主地圖
-function ScreenCelebration({ delta, state, prevState, onDone }) {
+function ScreenCelebration({ delta, state, prevState, fileCacheWarn, onDone }) {
   const [phase, setPhase] = useState(0);
   // phase: 0 flash, 1 score, 2 indicators, 3 levelup(optional), 4 hold/summary
 
@@ -179,9 +179,27 @@ function ScreenCelebration({ delta, state, prevState, onDone }) {
           </div>
         )}
 
-        {/* Phase 4: Continue button */}
+        {/* Phase 4: Continue button + 檔案快取警告 */}
         {phase >= (leveledUp ? 4 : 3) && (
           <div style={{ animation: 'slideUp 400ms steps(6)' }}>
+            {fileCacheWarn && (
+              <div style={{
+                background: '#2a1a00', border: `2px solid ${PALETTE.gold}`,
+                borderRadius: 4, padding: '10px 14px', marginBottom: 14,
+                fontFamily: "'DotGothic16', monospace", fontSize: 13,
+                color: PALETTE.gold, textAlign: 'left', lineHeight: 1.6,
+              }}>
+                ⚠ 檔案{fileCacheWarn === 'quota' ? '儲存空間已滿' : '儲存失敗'}，無法在瀏覽器本機保留。
+                {fileCacheWarn === 'quota' && (
+                  <span style={{ color: PALETTE.textDim, fontSize: 12, display: 'block', marginTop: 4 }}>
+                    請至瀏覽器設定清除本站快取，或改用較小的檔案上傳。
+                  </span>
+                )}
+                <span style={{ color: PALETTE.textDim, fontSize: 12, display: 'block', marginTop: 2 }}>
+                  上傳紀錄已儲存，但「檢視」功能在此裝置上無法使用。
+                </span>
+              </div>
+            )}
             <PixelButton size="lg" color={PALETTE.green} textColor="#000" onClick={onDone}>
               繼續冒險 ▶
             </PixelButton>
