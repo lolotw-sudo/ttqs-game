@@ -283,13 +283,24 @@ function _Legacy_StepPickCourse({ courseId, onPick }) {
 }
 
 // ========== Step 2: 拖拉檔案 + 多選類型 ==========
+const MAX_FILE_MB = 5;
+
 function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, dragOver, setDragOver, onNext, onBack }) {
   const fileInputRef = React.useRef(null);
   const [hoveredTypeId, setHoveredTypeId] = React.useState(null);
-  const canNext = fileName && typeIds.length > 0;
+  const [fileSizeError, setFileSizeError] = React.useState(null);
+  const canNext = fileName && typeIds.length > 0 && !fileSizeError;
 
   function handleFile(file) {
     if (!file) return;
+    setFileSizeError(null);
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      setFileSizeError(`檔案 ${mb} MB 超過 ${MAX_FILE_MB} MB 上限，請壓縮後再上傳。`);
+      setFileName('');
+      onFileData(null);
+      return;
+    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => onFileData(e.target.result);
@@ -358,11 +369,23 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
         )}
       </div>
 
+      {/* 檔案大小錯誤 */}
+      {fileSizeError && (
+        <div style={{
+          background: '#3d0000', border: '2px solid #ff5e5b',
+          borderRadius: 4, padding: '10px 16px', marginBottom: 16,
+          fontFamily: "'DotGothic16', monospace", fontSize: 14,
+          color: '#ff5e5b',
+        }}>
+          ⚠ {fileSizeError}
+        </div>
+      )}
+
       {/* 類型選擇（多選） */}
       <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 15, color: PALETTE.text, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <span style={{ color: PALETTE.gold, fontFamily: "'Press Start 2P', monospace", fontSize: 10 }}>▼ </span>
-          這份檔案有哪些用途？（可複選）
+          請選擇上傳檔案的類型（可複選）
         </div>
         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: PALETTE.textDim }}>
           已選 {typeIds.length} 項
@@ -378,6 +401,12 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
         {EVIDENCE_TYPES.map(t => {
           const active = typeIds.includes(t.id);
           const hovered = hoveredTypeId === t.id;
+          const allP = t.maps.every(indId => {
+            const ind = INDICATORS.find(i => i.id === indId);
+            return ind && ind.stage === 'P';
+          });
+          const role = allP ? '學系代表' : '培訓師';
+          const roleColor = allP ? PALETTE.cyan : PALETTE.purple;
           return (
             <div key={t.id}
               onClick={() => toggleType(t.id)}
@@ -388,12 +417,18 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
                 color: active ? '#000' : PALETTE.text,
                 border: `2px solid ${active ? PALETTE.gold : hovered ? PALETTE.cyan : PALETTE.border}`,
                 boxShadow: pixelShadow(PALETTE.shadow, active ? 4 : hovered ? 3 : 2),
-                padding: '8px 10px', cursor: 'pointer',
+                padding: '8px 10px', paddingTop: 20, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
                 transform: active ? 'translate(-1px,-1px)' : 'none',
                 position: 'relative',
                 transition: 'background 80ms, border-color 80ms',
               }}>
+              {/* 角色標籤（右上角） */}
+              <div style={{
+                position: 'absolute', top: 4, right: 6,
+                fontFamily: "'DotGothic16', monospace", fontSize: 10,
+                color: active ? '#555' : roleColor,
+              }}>{role}</div>
               {active && (
                 <div style={{
                   position: 'absolute', top: -6, right: -6,
@@ -403,13 +438,25 @@ function StepPickFile({ fileName, setFileName, onFileData, typeIds, setTypeIds, 
                   border: `2px solid ${PALETTE.border}`,
                 }}>✓</div>
               )}
-              <span style={{ fontSize: 20 }}>{t.icon}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t.name}
                 </div>
-                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: active ? '#000' : PALETTE.textDim, opacity: 0.8 }}>
-                  LV{t.difficulty} · +{DIFFICULTY_POINTS[t.difficulty].points}
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, marginTop: 3 }}>
+                  <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11, color: active ? '#555' : PALETTE.textDim }}>
+                    對應指標：
+                  </span>
+                  {t.maps.map((indId, idx) => {
+                    const ind = INDICATORS.find(i => i.id === indId);
+                    const stage = ind ? STAGES.find(s => s.id === ind.stage) : null;
+                    if (!ind || !stage) return null;
+                    return (
+                      <React.Fragment key={indId}>
+                        {idx > 0 && <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11, color: active ? '#555' : PALETTE.textDim }}>,</span>}
+                        <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11, color: active ? '#333' : stage.color, fontWeight: 700 }}>#{indId}</span>
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
               </div>
             </div>

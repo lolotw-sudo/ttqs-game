@@ -207,9 +207,9 @@
             const isNumeric = /^\d{1,4}$/.test(k);
             if (isNumeric) {
               numericKeys.push(k);
-              if (!playerMap[p.id]) playerMap[p.id] = p; // numeric 版先填
+              if (!playerMap[p.id]) playerMap[p.id] = p;
             } else {
-              playerMap[p.id] = p; // ID-key 版覆蓋
+              playerMap[p.id] = p;
             }
           });
           const normalized = Object.values(playerMap).map(p => ({

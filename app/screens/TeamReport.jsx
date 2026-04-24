@@ -20,10 +20,11 @@ function ScreenTeamReport({ players, onClose }) {
     return parts.length > 1 ? parts.pop() : 'pdf';
   }
 
-  function suggestName(upload, type, indicator, seq = null) {
-    const code = upload.courseCode ? cleanName(upload.courseCode) + '_' : '';
+  function suggestName(upload, type, indicator, teamData, seq = null) {
     const seqStr = seq !== null ? `_${String(seq).padStart(3, '0')}` : '';
-    return `${cleanName(type.name)}_指標${indicator.id}_${cleanName(indicator.name)}_${code}${cleanName(upload.courseName)}${seqStr}.${getExt(upload.fileName)}`;
+    const teamName = cleanName(teamData?.name || '');
+    const courseName = cleanName(upload.courseName || '');
+    return `指標${indicator.id}_${cleanName(type.name)}_${teamName}_${courseName}${seqStr}.${getExt(upload.fileName)}`;
   }
 
   // Flatten: one entry per (upload × type × indicator)
@@ -63,10 +64,12 @@ function ScreenTeamReport({ players, onClose }) {
     return map;
   }, [filtered]);
 
-  // Count real files available for zip
+  // Count real files available for zip（一份上傳 × 一個指標 = 一個檔）
   const zipCount = useMemo(() => {
     const seen = new Set();
-    filtered.forEach(e => { if (e.upload.fileData) seen.add(e.upload.id); });
+    filtered.forEach(e => {
+      if (e.upload.fileData) seen.add(`${e.upload.id}__${e.indicator.id}`);
+    });
     return seen.size;
   }, [filtered]);
 
@@ -110,7 +113,7 @@ function ScreenTeamReport({ players, onClose }) {
       e.upload.courseCode || '',
       e.upload.courseName || '',
       e.upload.fileName,
-      suggestName(e.upload, e.type, e.indicator),
+      suggestName(e.upload, e.type, e.indicator, e.teamData),
     ]);
     const csv = [header, ...rows]
       .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
@@ -129,21 +132,15 @@ function ScreenTeamReport({ players, onClose }) {
     setDownloading(true);
     try {
       const zip = new JSZip();
-      const seenUploadIds = new Set();
+      // 每個 (upload × indicator) 獨立產出一個檔案
+      const seenPairs = new Set();
       const nameCount = {};
       filtered.forEach(e => {
-        if (!e.upload.fileData || seenUploadIds.has(e.upload.id)) return;
-        seenUploadIds.add(e.upload.id);
-        const tids = getUploadTypeIds(e.upload);
-        const types = tids.map(tid => EVIDENCE_TYPES.find(t => t.id === tid)).filter(Boolean);
-        const allIndIds = [...new Set(types.flatMap(t => t.maps))];
-        const primaryType = types[0];
-        const indNums = allIndIds.join('+');
-        const indNames = allIndIds
-          .map(id => cleanName(INDICATORS.find(i => i.id === id)?.name || ''))
-          .join('+');
-        const code = e.upload.courseCode ? cleanName(e.upload.courseCode) + '_' : '';
-        const base = `${cleanName(primaryType.name)}_指標${indNums}_${indNames}_${code}${cleanName(e.upload.courseName)}`;
+        if (!e.upload.fileData) return;
+        const pairKey = `${e.upload.id}__${e.indicator.id}`;
+        if (seenPairs.has(pairKey)) return;
+        seenPairs.add(pairKey);
+        const base = `指標${e.indicator.id}_${cleanName(e.type.name)}_${cleanName(e.teamData?.name || '')}_${cleanName(e.upload.courseName || '')}`;
         const ext = getExt(e.upload.fileName);
         nameCount[base] = (nameCount[base] || 0) + 1;
         const seq = String(nameCount[base]).padStart(3, '0');
@@ -302,7 +299,7 @@ function ScreenTeamReport({ players, onClose }) {
                 </div>
 
                 {items.map((e, i) => {
-                  const name = suggestName(e.upload, e.type, e.indicator);
+                  const name = suggestName(e.upload, e.type, e.indicator, e.teamData);
                   const hasFile = !!e.upload.fileData;
                   return (
                     <div key={`${e.upload.id}-${e.type.id}-${e.indicator.id}`} style={{

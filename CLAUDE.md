@@ -5,8 +5,8 @@
 
 ## 技術架構
 - **無建構系統**：HTML 直接引用 React 18 CDN + @babel/standalone（in-browser JSX）+ JSZip CDN
-- **無後端**：多人資料存 `localStorage`（key: `ttqs_players_v1`）；舊單人 key `ttqs_quest_state_v2` 會自動遷移
-- **入口**：`TTQS 任務闖關.html` — 載入所有 JSX 並掛載 React App
+- **資料庫**：Firebase Realtime Database（`ttqs-game-default-rtdb.asia-southeast1`），多人跨裝置即時同步
+- **入口**：`index.html` — 載入所有 JSX 並掛載 React App（`TTQS 任務闖關.html` 保留備份，內容與 index.html 相同）
 - **本機伺服器**：`python3 -m http.server 8765`（需 server，不能直接 file://）
 
 ## 檔案結構
