@@ -4,7 +4,7 @@
 // Step 3: 系統自動 mapping 預覽 + 積分預告
 // Step 4: 確認送出 → Celebration
 
-function ScreenUpload({ state, uploads, playerId, onCancel, onConfirm }) {
+function ScreenUpload({ state, uploads, playerId, team, onCancel, onConfirm }) {
   const [step, setStep] = useState(1);
   const [courseCode, setCourseCode] = useState('');
   const [courseName, setCourseName] = useState('');
@@ -38,7 +38,9 @@ function ScreenUpload({ state, uploads, playerId, onCancel, onConfirm }) {
     let fileUrl = null;
     if (fileObject) {
       try {
-        const storageRef = window.__storage.ref(`uploads/${draftUpload.id}/${fileObject.name}`);
+        const uid = window.__auth.currentUser?.uid || 'anon';
+        const safeTeam = team || 'unknown';
+        const storageRef = window.__storage.ref(`uploads/${safeTeam}/${uid}/${draftUpload.id}/${fileObject.name}`);
         await storageRef.put(fileObject);
         fileUrl = await storageRef.getDownloadURL();
       } catch (e) {
