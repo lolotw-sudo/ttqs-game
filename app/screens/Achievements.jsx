@@ -124,7 +124,7 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
   const relevantUploads = uploads.filter(u => {
     const tids = getUploadTypeIds(u);
     return tids.some(tid => {
-      const t = EVIDENCE_TYPES.find(x => x.id === tid);
+      const t = resolveType(tid);
       return t && t.maps.includes(indicator.id);
     });
   });
@@ -179,7 +179,7 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
           <div style={{ marginBottom: 18 }}>
             {relevantUploads.map(u => {
               const tids = getUploadTypeIds(u);
-              const ts = tids.map(tid => EVIDENCE_TYPES.find(x => x.id === tid)).filter(Boolean);
+              const ts = tids.map(tid => resolveType(tid)).filter(Boolean);
               const matching = ts.filter(t => t.maps.includes(indicator.id));
               const primaryType = matching.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), matching[0]);
 

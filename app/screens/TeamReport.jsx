@@ -35,7 +35,7 @@ function ScreenTeamReport({ players, onClose }) {
       (player.uploads || []).forEach(upload => {
         const typeIds = getUploadTypeIds(upload);
         typeIds.forEach(tid => {
-          const type = EVIDENCE_TYPES.find(t => t.id === tid);
+          const type = resolveType(tid);
           if (!type) return;
           type.maps.forEach(indId => {
             const indicator = INDICATORS.find(i => i.id === indId);

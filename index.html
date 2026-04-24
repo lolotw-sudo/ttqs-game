@@ -114,6 +114,8 @@
       appId: "1:244519103751:web:c19540f6ae59213b1569a2",
     });
     window.__playersRef = firebase.database().ref('players');
+    window.__customTypesRef = firebase.database().ref('customTypes');
+    window.__customTypes = {};
     window.__storage = firebase.storage();
     window.__auth = firebase.auth();
     window.__auth.signInAnonymously().catch(console.error);
@@ -157,6 +159,7 @@
       const [pendingCelebrate, setPendingCelebrate] = useState(null);
       const [tweaks, setTweaks] = useState(TWEAKS_DEFAULT);
       const [editMode, setEditMode] = useState(false);
+      const [customTypes, setCustomTypes] = useState([]);
 
       const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
       const uploads   = currentPlayer?.uploads   || [];
@@ -219,6 +222,16 @@
           setDbLoaded(true);
         });
         return () => window.__playersRef.off('value');
+      }, []);
+
+      // customTypes 即時同步
+      useEffect(() => {
+        window.__customTypesRef.on('value', snapshot => {
+          const val = snapshot.val() || {};
+          window.__customTypes = val;
+          setCustomTypes(Object.values(val));
+        });
+        return () => window.__customTypesRef.off('value');
       }, []);
 
       // 切換畫面時捲回頂部
@@ -293,6 +306,10 @@
         const updatedPlayer = { ...currentPlayer, uploads: newUploads };
         savePlayer(updatedPlayer);
         setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
+      }
+
+      function isCustomTypeUsed(tid) {
+        return players.some(p => (p.uploads || []).some(u => (u.typeIds || []).includes(tid)));
       }
 
       function setTweak(key, value) {
@@ -399,6 +416,9 @@
             {currentPlayer && screen === 'upload' && (
               <ScreenUpload
                 state={state} uploads={uploads} playerId={currentPlayerId} team={team}
+                playerName={playerName}
+                customTypes={customTypes}
+                isCustomTypeUsed={isCustomTypeUsed}
                 onCancel={() => setScreen('map')}
                 onConfirm={handleUploadConfirm}
               />

@@ -276,6 +276,15 @@ function getUploadTypeIds(u) {
   return [];
 }
 
+// 解析類型 ID → 類型物件（預設 28 種 + 自訂 ct_* 類型）
+function resolveType(tid) {
+  const predefined = EVIDENCE_TYPES.find(t => t.id === tid);
+  if (predefined) return predefined;
+  const ct = window.__customTypes?.[tid];
+  if (ct) return { id: ct.id, name: ct.name, icon: '✏', difficulty: 1, maps: ct.maps || [] };
+  return null;
+}
+
 // 給定 uploads 陣列 → 計算每個指標狀態、總分、徽章
 function computeState(uploads) {
   // indicator id → { count, items, difficultyMax }
@@ -287,7 +296,7 @@ function computeState(uploads) {
 
   uploads.forEach(u => {
     const typeIds = getUploadTypeIds(u);
-    const types = typeIds.map(tid => EVIDENCE_TYPES.find(t => t.id === tid)).filter(Boolean);
+    const types = typeIds.map(tid => resolveType(tid)).filter(Boolean);
     if (!types.length) return;
 
     // 單筆上傳可能勾選多個類型：分數用「最高難度」避免灌水
@@ -348,7 +357,7 @@ function computeState(uploads) {
     if (t.type === 'difficulty')   return uploads.some(u => {
       const tids = getUploadTypeIds(u);
       return tids.some(tid => {
-        const ty = EVIDENCE_TYPES.find(tt => tt.id === tid);
+        const ty = resolveType(tid);
         return ty && ty.difficulty >= t.lv;
       });
     });
@@ -370,7 +379,7 @@ function computeUploadDelta(prevUploads, newUpload) {
   const before = computeState(prevUploads);
   const after = computeState([...prevUploads, newUpload]);
   const typeIds = getUploadTypeIds(newUpload);
-  const types = typeIds.map(tid => EVIDENCE_TYPES.find(t => t.id === tid)).filter(Boolean);
+  const types = typeIds.map(tid => resolveType(tid)).filter(Boolean);
   const bestType = types.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), types[0]);
   const bestD = DIFFICULTY_POINTS[bestType.difficulty];
 
@@ -402,5 +411,5 @@ Object.assign(window, {
   PALETTE, pixelShadow,
   PixelBox, PixelButton, StatBar, IndicatorChip, DifficultyBadge,
   Typewriter, PopNumber, ScanlineOverlay, PixelAvatar,
-  computeState, computeUploadDelta, getUploadTypeIds,
+  computeState, computeUploadDelta, getUploadTypeIds, resolveType,
 });

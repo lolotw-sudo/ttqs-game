@@ -4,7 +4,7 @@
 // Step 3: 系統自動 mapping 預覽 + 積分預告
 // Step 4: 確認送出 → Celebration
 
-function ScreenUpload({ state, uploads, playerId, team, onCancel, onConfirm }) {
+function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes = [], isCustomTypeUsed, onCancel, onConfirm }) {
   const [step, setStep] = useState(1);
   const [courseCode, setCourseCode] = useState('');
   const [courseName, setCourseName] = useState('');
@@ -106,6 +106,9 @@ function ScreenUpload({ state, uploads, playerId, team, onCancel, onConfirm }) {
             onFileObject={setFileObject}
             typeIds={typeIds} setTypeIds={setTypeIds}
             dragOver={dragOver} setDragOver={setDragOver}
+            customTypes={customTypes}
+            isCustomTypeUsed={isCustomTypeUsed}
+            playerName={playerName}
             onNext={() => setStep(3)}
             onBack={() => setStep(1)}
           />
@@ -328,11 +331,45 @@ function _Legacy_StepPickCourse({ courseId, onPick }) {
 // ========== Step 2: 拖拉檔案 + 多選類型 ==========
 const MAX_FILE_MB = 50;
 
-function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds, dragOver, setDragOver, onNext, onBack }) {
+function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds, dragOver, setDragOver, customTypes, isCustomTypeUsed, playerName, onNext, onBack }) {
   const fileInputRef = React.useRef(null);
   const [hoveredTypeId, setHoveredTypeId] = React.useState(null);
   const [fileSizeError, setFileSizeError] = React.useState(null);
+  const [showCustomForm, setShowCustomForm] = React.useState(false);
+  const [customName, setCustomName] = React.useState('');
+  const [customMaps, setCustomMaps] = React.useState([]);
+  const [customSaving, setCustomSaving] = React.useState(false);
   const canNext = fileName && typeIds.length > 0 && !fileSizeError;
+
+  function toggleCustomMap(indId) {
+    setCustomMaps(prev => prev.includes(indId) ? prev.filter(x => x !== indId) : [...prev, indId]);
+  }
+
+  async function handleAddCustomType() {
+    if (!customName.trim() || customMaps.length === 0) return;
+    setCustomSaving(true);
+    const id = 'ct_' + Date.now();
+    const ct = {
+      id,
+      name: customName.trim(),
+      maps: customMaps,
+      difficulty: 1,
+      createdBy: playerName || '未知',
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+    await window.__customTypesRef.child(id).set(ct).catch(console.error);
+    setTypeIds(prev => [...prev, id]);
+    setCustomName('');
+    setCustomMaps([]);
+    setShowCustomForm(false);
+    setCustomSaving(false);
+  }
+
+  async function handleDeleteCustomType(id) {
+    if (!confirm('確定刪除這個自訂類型？')) return;
+    await window.__customTypesRef.child(id).remove().catch(console.error);
+    setTypeIds(prev => prev.filter(x => x !== id));
+  }
 
   function handleFile(file) {
     if (!file) return;
@@ -503,6 +540,155 @@ function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds
             </div>
           );
         })}
+      </div>
+
+      {/* ── 自訂類型區塊 ── */}
+      <div style={{ marginTop: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: PALETTE.cyan }}>
+            ✏ 自訂佐證類型（全體共用）
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+          {customTypes.map(ct => {
+            const active = typeIds.includes(ct.id);
+            const used = isCustomTypeUsed ? isCustomTypeUsed(ct.id) : true;
+            return (
+              <div key={ct.id} style={{
+                display: 'flex', alignItems: 'center', gap: 0,
+                border: `2px solid ${active ? PALETTE.cyan : PALETTE.line}`,
+                background: active ? PALETTE.cyan + '22' : PALETTE.panel,
+                borderRadius: 4, overflow: 'hidden',
+              }}>
+                <div
+                  onClick={() => setTypeIds(prev => active ? prev.filter(x => x !== ct.id) : [...prev, ct.id])}
+                  style={{
+                    padding: '7px 12px', cursor: 'pointer',
+                    fontFamily: "'DotGothic16', monospace", fontSize: 13,
+                    color: active ? PALETTE.cyan : PALETTE.text,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {active && <span style={{ color: PALETTE.green, fontSize: 10 }}>✓</span>}
+                  ✏ {ct.name}
+                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: PALETTE.textDim }}>
+                    #{ct.maps.join(',')}
+                  </span>
+                </div>
+                {!used && (
+                  <div
+                    onClick={() => handleDeleteCustomType(ct.id)}
+                    title="刪除此自訂類型（無關聯才能刪）"
+                    style={{
+                      padding: '7px 9px', cursor: 'pointer',
+                      borderLeft: `2px solid ${PALETTE.line}`,
+                      color: PALETTE.red, fontSize: 12,
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >🗑</div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* 新增自訂類型按鈕 */}
+          {!showCustomForm && (
+            <div
+              onClick={() => setShowCustomForm(true)}
+              style={{
+                padding: '7px 14px', cursor: 'pointer',
+                border: `2px dashed ${PALETTE.cyan}`,
+                color: PALETTE.cyan, borderRadius: 4,
+                fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >＋ 新增自訂類型</div>
+          )}
+        </div>
+
+        {/* 新增自訂類型展開表單 */}
+        {showCustomForm && (
+          <div style={{
+            background: PALETTE.bgAlt, border: `2px solid ${PALETTE.cyan}`,
+            borderRadius: 4, padding: 16, marginBottom: 8,
+          }}>
+            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: PALETTE.cyan, marginBottom: 10 }}>
+              ✏ 新增自訂佐證類型
+            </div>
+
+            {/* 名稱 */}
+            <input
+              type="text"
+              value={customName}
+              onChange={e => setCustomName(e.target.value)}
+              placeholder="佐證類型名稱（例：學員出席紀錄）"
+              maxLength={30}
+              style={{
+                width: '100%', marginBottom: 12,
+                fontFamily: "'DotGothic16', monospace", fontSize: 15,
+                padding: '8px 12px',
+                background: PALETTE.bg, color: PALETTE.text,
+                border: `2px solid ${PALETTE.border}`, outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+
+            {/* 指標選擇（依 PDDRO 分組） */}
+            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: PALETTE.textDim, marginBottom: 8 }}>
+              選擇對應指標（可複選，至少選 1 個）
+            </div>
+            {STAGES.map(stage => (
+              <div key={stage.id} style={{ marginBottom: 10 }}>
+                <div style={{
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                  color: stage.color, marginBottom: 5,
+                }}>
+                  {stage.emoji} {stage.name} · {stage.subtitle}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INDICATORS.filter(i => i.stage === stage.id).map(ind => {
+                    const sel = customMaps.includes(ind.id);
+                    return (
+                      <div
+                        key={ind.id}
+                        onClick={() => toggleCustomMap(ind.id)}
+                        title={ind.name}
+                        style={{
+                          padding: '4px 10px', cursor: 'pointer', borderRadius: 3,
+                          border: `2px solid ${sel ? stage.color : PALETTE.line}`,
+                          background: sel ? stage.color + '33' : PALETTE.panel,
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                          color: sel ? stage.color : PALETTE.textDim,
+                          display: 'flex', alignItems: 'center', gap: 5,
+                        }}
+                      >
+                        {sel && '✓ '}#{ind.id}
+                        <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 11 }}>
+                          {ind.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+              <PixelButton size="sm" color={PALETTE.panelLt} textColor={PALETTE.text}
+                onClick={() => { setShowCustomForm(false); setCustomName(''); setCustomMaps([]); }}>
+                ✕ 取消
+              </PixelButton>
+              <PixelButton
+                size="sm" color={PALETTE.cyan} textColor="#000"
+                disabled={!customName.trim() || customMaps.length === 0 || customSaving}
+                onClick={handleAddCustomType}
+              >
+                {customSaving ? '儲存中…' : '✓ 新增並選取'}
+              </PixelButton>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 任務說明面板（hover 顯示） */}
