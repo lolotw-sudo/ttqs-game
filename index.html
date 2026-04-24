@@ -98,6 +98,22 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyCBZhX-WRpIic4LMEe2XFoG0xb0rPZAI9o",
+      authDomain: "ttqs-game.firebaseapp.com",
+      databaseURL: "https://ttqs-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ttqs-game",
+      storageBucket: "ttqs-game.firebasestorage.app",
+      messagingSenderId: "244519103751",
+      appId: "1:244519103751:web:c19540f6ae59213b1569a2",
+    });
+    window.__playersRef = firebase.database().ref('players');
+  </script>
+
   <script type="text/babel" src="./app/data.jsx"></script>
   <script type="text/babel" src="./app/components.jsx"></script>
   <script type="text/babel" src="./app/screens/Map.jsx"></script>
@@ -120,36 +136,33 @@
       "bgIntensity": 50
     }/*EDITMODE-END*/;
 
-    const PLAYERS_KEY = 'ttqs_players_v1';
-    const LEGACY_KEY  = 'ttqs_quest_state_v2';
-
-    function loadPlayers() {
-      try {
-        const raw = localStorage.getItem(PLAYERS_KEY);
-        if (raw) return JSON.parse(raw);
-        // migrate legacy single-player save
-        const legacy = localStorage.getItem(LEGACY_KEY);
-        if (legacy) {
-          const p = JSON.parse(legacy);
-          if (p?.playerName && p?.team) {
-            return [{
-              id: Date.now().toString(),
-              name: p.playerName,
-              team: p.team,
-              uploads: p.uploads || [],
-              lastScreen: p.screen || 'map',
-            }];
-          }
-        }
-      } catch {}
-      return [];
+    // fileData 只存 localStorage，不進 Firebase（避免 Write too large）
+    function cacheFileData(playerId, uploadId, fileData) {
+      try { localStorage.setItem(`ttqs_fd_${playerId}_${uploadId}`, fileData); } catch {}
     }
-    function savePlayers(ps) {
-      try { localStorage.setItem(PLAYERS_KEY, JSON.stringify(ps)); } catch {}
+    function loadFileData(playerId, uploadId) {
+      try { return localStorage.getItem(`ttqs_fd_${playerId}_${uploadId}`) || undefined; } catch { return undefined; }
+    }
+    function mergeFileData(players) {
+      return players.map(p => ({
+        ...p,
+        uploads: p.uploads.map(u => ({ ...u, fileData: loadFileData(p.id, u.id) })),
+      }));
+    }
+    function stripFileData(player) {
+      return { ...player, uploads: player.uploads.map(({ fileData, ...rest }) => rest) };
+    }
+
+    function savePlayer(player) {
+      window.__playersRef.child(player.id).set(stripFileData(player)).catch(console.error);
+    }
+    function removePlayer(id) {
+      window.__playersRef.child(id).remove().catch(console.error);
     }
 
     function App() {
-      const [players, setPlayers] = useState(() => loadPlayers());
+      const [players, setPlayers] = useState([]);
+      const [dbLoaded, setDbLoaded] = useState(false);
       const [currentPlayerId, setCurrentPlayerId] = useState(null);
       const [screen, setScreen] = useState('landing');
       const [focusStage, setFocusStage] = useState(null);
@@ -164,13 +177,70 @@
 
       const state = useMemo(() => computeState(uploads), [uploads]);
 
-      // Persist players array whenever it changes
-      useEffect(() => { savePlayers(players); }, [players]);
-
-      // Save current screen into player record (except meta-screens)
+      // Firebase 即時同步（含 localStorage 一次性遷移）
       useEffect(() => {
-        if (!currentPlayerId) return;
+        window.__playersRef.on('value', snapshot => {
+          const val = snapshot.val();
+          if (val === null) {
+            try {
+              const raw = localStorage.getItem('ttqs_players_v1');
+              if (raw) {
+                const migrated = JSON.parse(raw);
+                if (migrated && migrated.length > 0) {
+                  migrated.forEach(p => window.__playersRef.child(p.id).set(p));
+                  return;
+                }
+              }
+            } catch {}
+          }
+          // 兩步驟去重：先放 numeric-key 版，再讓 ID-key 版覆蓋
+          // （Object.values 會把數字 key 排在前面，要確保新版 ID-key 留下）
+          const rawObj = val
+            ? (Array.isArray(val)
+                ? val.reduce((acc, v, i) => { acc[i] = v; return acc; }, {})
+                : val)
+            : {};
+          const playerMap = {};
+          const numericKeys = [];
+          Object.entries(rawObj).forEach(([k, p]) => {
+            if (!p || !p.id) return;
+            const isNumeric = /^\d{1,4}$/.test(k);
+            if (isNumeric) {
+              numericKeys.push(k);
+              if (!playerMap[p.id]) playerMap[p.id] = p; // numeric 版先填
+            } else {
+              playerMap[p.id] = p; // ID-key 版覆蓋
+            }
+          });
+          const normalized = Object.values(playerMap).map(p => ({
+            ...p,
+            uploads: p.uploads
+              ? (Array.isArray(p.uploads) ? p.uploads : Object.values(p.uploads))
+              : [],
+          }));
+
+          // 若含數字 key（舊版殘留），一次性遷移為 ID key
+          if (numericKeys.length > 0) {
+            const updates = {};
+            normalized.forEach(p => { updates[p.id] = stripFileData(p); });
+            numericKeys.forEach(k => { updates[k] = null; });
+            window.__playersRef.update(updates).catch(console.error);
+          }
+
+          setPlayers(mergeFileData(normalized));
+          setDbLoaded(true);
+        });
+        return () => window.__playersRef.off('value');
+      }, []);
+
+      // 切換畫面時捲回頂部
+      useEffect(() => { window.scrollTo(0, 0); }, [screen]);
+
+      // 記錄玩家所在畫面
+      useEffect(() => {
+        if (!currentPlayerId || !dbLoaded) return;
         if (screen === 'landing' || screen === 'teamSelect') return;
+        window.__playersRef.child(currentPlayerId).child('lastScreen').set(screen).catch(console.error);
         setPlayers(prev => prev.map(p =>
           p.id === currentPlayerId ? { ...p, lastScreen: screen } : p
         ));
@@ -202,17 +272,18 @@
           uploads: [],
           lastScreen: 'map',
         };
-        setPlayers(prev => [...prev, newPlayer]);
+        savePlayer(newPlayer);
         setCurrentPlayerId(newPlayer.id);
         setScreen('map');
       }
 
       function handleUploadConfirm(upload, delta) {
         const prevState = state;
+        if (upload.fileData) cacheFileData(currentPlayerId, upload.id, upload.fileData);
         const newUploads = [...uploads, upload];
-        setPlayers(prev => prev.map(p =>
-          p.id === currentPlayerId ? { ...p, uploads: newUploads } : p
-        ));
+        const updatedPlayer = { ...currentPlayer, uploads: newUploads };
+        savePlayer(updatedPlayer);
+        setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
         const newState = computeState(newUploads);
         setPendingCelebrate({ delta, state: newState, prevState });
         setScreen('celebrate');
@@ -225,16 +296,16 @@
 
       function deletePlayer(id) {
         if (!confirm('確定要刪除這個成員嗎？所有進度會清空！')) return;
+        removePlayer(id);
         setPlayers(prev => prev.filter(p => p.id !== id));
         if (currentPlayerId === id) exitToLanding();
       }
 
       function handleDeleteUpload(uploadId) {
-        setPlayers(prev => prev.map(p =>
-          p.id === currentPlayerId
-            ? { ...p, uploads: p.uploads.filter(u => u.id !== uploadId) }
-            : p
-        ));
+        const newUploads = uploads.filter(u => u.id !== uploadId);
+        const updatedPlayer = { ...currentPlayer, uploads: newUploads };
+        savePlayer(updatedPlayer);
+        setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
       }
 
       function setTweak(key, value) {
@@ -244,6 +315,25 @@
       }
 
       const inGame = currentPlayer && screen !== 'landing' && screen !== 'teamSelect';
+
+      // 等待 Firebase 連線
+      if (!dbLoaded) return (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '100vh', flexDirection: 'column', gap: 16,
+        }}>
+          <div style={{
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 14, color: '#ffd23f',
+            textShadow: '2px 2px 0 #000',
+          }}>★ TTQS QUEST</div>
+          <div style={{
+            fontFamily: "'DotGothic16', monospace",
+            fontSize: 16, color: '#8888aa',
+            animation: 'blink 1.5s steps(2) infinite',
+          }}>連線中…</div>
+        </div>
+      );
 
       return (
         <>
