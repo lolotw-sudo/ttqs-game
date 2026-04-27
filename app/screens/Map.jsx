@@ -306,11 +306,12 @@ function RecentActivity({ uploads, customTypes, onEditUpload }) {
             const ts = tids.map(id => resolveType(id)).filter(Boolean);
             if (!ts.length) return null;
             const hardest = ts.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), ts[0]);
-            const indIds = hardest.maps || [];
-            const firstInd = INDICATORS.find(ind => ind.id === indIds[0]);
+            // 聯集所有選定類型的指標（而非只取最難那一個）
+            const allIndIds = [...new Set(ts.flatMap(t => t.maps || []))];
+            const firstInd = INDICATORS.find(ind => ind.id === allIndIds[0]);
             const stage = firstInd ? STAGES.find(s => s.id === firstInd.stage) : null;
             const stageColor = stage?.color || '#46468a';
-            const indLabel = indIds.slice(0, 4).map(id => `#${id}`).join(' ');
+            const indLabel = allIndIds.slice(0, 5).map(id => `#${id}`).join(' ');
             const isEditing = editingId === u.id;
 
             return (
