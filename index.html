@@ -278,9 +278,10 @@
         setScreen('map');
       }
 
-      function handleUploadConfirm(upload, delta) {
+      function handleUploadConfirm(uploadsOrUpload, delta) {
         const prevState = state;
-        const newUploads = [...uploads, upload];
+        const incoming = Array.isArray(uploadsOrUpload) ? uploadsOrUpload : [uploadsOrUpload];
+        const newUploads = [...uploads, ...incoming];
         const updatedPlayer = { ...currentPlayer, uploads: newUploads };
         savePlayer(updatedPlayer);
         setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));

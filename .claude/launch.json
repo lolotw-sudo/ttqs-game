@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "ttqs-game",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /Users/lolo/Desktop/TTQS-game/.claude/worktrees/zealous-nobel-01e8f6 && python3 -m http.server 8765"],
+      "name": "TTQS Game",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "/Users/lolo/Desktop/TTQS-game"],
       "port": 8765,
       "autoPort": false
     }

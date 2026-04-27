@@ -4,12 +4,41 @@
 // Step 3: 系統自動 mapping 預覽 + 積分預告
 // Step 4: 確認送出 → Celebration
 
+// 計算多筆上傳的累積積分 delta
+function computeMultiDelta(existingUploads, drafts) {
+  if (!drafts.length) return null;
+  let running = [...existingUploads];
+  let totalBase = 0, totalUnlock = 0;
+  const allTouched = new Set();
+  const allUnlocked = [];
+  const allCompleted = [];
+  let lastDelta = null;
+  for (const u of drafts) {
+    const d = computeUploadDelta(running, u);
+    totalBase += d.basePoints;
+    totalUnlock += d.unlockBonus;
+    d.indicatorsTouched.forEach(id => allTouched.add(id));
+    d.newlyUnlocked.forEach(id => { if (!allUnlocked.includes(id)) allUnlocked.push(id); });
+    d.newlyCompleted.forEach(id => { if (!allCompleted.includes(id)) allCompleted.push(id); });
+    running = [...running, u];
+    lastDelta = d;
+  }
+  return {
+    ...lastDelta,
+    basePoints: totalBase,
+    unlockBonus: totalUnlock,
+    totalPoints: totalBase + totalUnlock,
+    indicatorsTouched: [...allTouched],
+    newlyUnlocked: allUnlocked,
+    newlyCompleted: allCompleted,
+  };
+}
+
 function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes = [], isCustomTypeUsed, onCancel, onConfirm }) {
   const [step, setStep] = useState(1);
   const [courseCode, setCourseCode] = useState('');
   const [courseName, setCourseName] = useState('');
-  const [fileName, setFileName] = useState('');
-  const [fileObject, setFileObject] = useState(null); // 實際 File 物件
+  const [fileObjects, setFileObjects] = useState([]); // 實際 File 物件陣列
   const [typeIds, setTypeIds] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -20,37 +49,52 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
   const today = new Date();
   const ts = `${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
 
-  const draftUpload = typeIds.length && courseReady ? {
-    id: 'new_' + Date.now(),
-    courseCode: courseCode.trim(),
-    courseName: courseName.trim(),
-    typeIds,
-    fileName: fileName || '(未命名)',
-    ts,
-  } : null;
+  // 每個檔案建一筆 draftUpload（共用 typeIds / 課程）
+  const draftUploads = typeIds.length && courseReady && fileObjects.length > 0
+    ? fileObjects.map(f => ({
+        id: 'preview_' + f.name,
+        courseCode: courseCode.trim(),
+        courseName: courseName.trim(),
+        typeIds,
+        fileName: f.name,
+        ts,
+      }))
+    : [];
 
-  const delta = draftUpload ? computeUploadDelta(uploads, draftUpload) : null;
+  const delta = draftUploads.length > 0 ? computeMultiDelta(uploads, draftUploads) : null;
 
   async function handleConfirm() {
-    if (!draftUpload) return;
+    if (!draftUploads.length) return;
     setUploading(true);
     setUploadError(null);
-    let fileUrl = null;
-    if (fileObject) {
+    const uid = window.__auth.currentUser?.uid || 'anon';
+    const safeTeam = team || 'unknown';
+    const confirmedUploads = [];
+    for (const fileObj of fileObjects) {
+      const id = 'new_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      let fileUrl = null;
       try {
-        const uid = window.__auth.currentUser?.uid || 'anon';
-        const safeTeam = team || 'unknown';
-        const storageRef = window.__storage.ref(`uploads/${safeTeam}/${uid}/${draftUpload.id}/${fileObject.name}`);
-        await storageRef.put(fileObject);
+        const storageRef = window.__storage.ref(`uploads/${safeTeam}/${uid}/${id}/${fileObj.name}`);
+        await storageRef.put(fileObj);
         fileUrl = await storageRef.getDownloadURL();
       } catch (e) {
         console.error('[TTQS] Storage upload failed:', e);
-        setUploadError('檔案上傳雲端失敗，請重試。若持續失敗，請確認 Firebase Storage 規則已設為開放讀寫。');
+        setUploadError(`「${fileObj.name}」上傳雲端失敗，請重試。`);
         setUploading(false);
         return;
       }
+      confirmedUploads.push({
+        id,
+        courseCode: courseCode.trim(),
+        courseName: courseName.trim(),
+        typeIds,
+        fileName: fileObj.name,
+        ts,
+        fileUrl,
+      });
     }
-    onConfirm({ ...draftUpload, fileUrl }, delta);
+    const finalDelta = computeMultiDelta(uploads, confirmedUploads);
+    onConfirm(confirmedUploads, finalDelta);
   }
 
   return (
@@ -102,8 +146,7 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
         )}
         {step === 2 && (
           <StepPickFile
-            fileName={fileName} setFileName={setFileName}
-            onFileObject={setFileObject}
+            fileObjects={fileObjects} setFileObjects={setFileObjects}
             typeIds={typeIds} setTypeIds={setTypeIds}
             dragOver={dragOver} setDragOver={setDragOver}
             customTypes={customTypes}
@@ -117,7 +160,7 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
           <StepPreview
             courseCode={courseCode} courseName={courseName}
             types={delta.types}
-            fileName={fileName || delta.types.map(t => t.name).join(' + ')}
+            fileNames={fileObjects.map(f => f.name)}
             delta={delta}
             state={state}
             uploadError={uploadError}
@@ -331,15 +374,15 @@ function _Legacy_StepPickCourse({ courseId, onPick }) {
 // ========== Step 2: 拖拉檔案 + 多選類型 ==========
 const MAX_FILE_MB = 50;
 
-function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds, dragOver, setDragOver, customTypes, isCustomTypeUsed, playerName, onNext, onBack }) {
+function StepPickFile({ fileObjects, setFileObjects, typeIds, setTypeIds, dragOver, setDragOver, customTypes, isCustomTypeUsed, playerName, onNext, onBack }) {
   const fileInputRef = React.useRef(null);
   const [hoveredTypeId, setHoveredTypeId] = React.useState(null);
-  const [fileSizeError, setFileSizeError] = React.useState(null);
+  const [fileSizeErrors, setFileSizeErrors] = React.useState([]);
   const [showCustomForm, setShowCustomForm] = React.useState(false);
   const [customName, setCustomName] = React.useState('');
   const [customMaps, setCustomMaps] = React.useState([]);
   const [customSaving, setCustomSaving] = React.useState(false);
-  const canNext = fileName && typeIds.length > 0 && !fileSizeError;
+  const canNext = fileObjects.length > 0 && typeIds.length > 0 && fileSizeErrors.length === 0;
 
   function toggleCustomMap(indId) {
     setCustomMaps(prev => prev.includes(indId) ? prev.filter(x => x !== indId) : [...prev, indId]);
@@ -371,18 +414,29 @@ function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds
     setTypeIds(prev => prev.filter(x => x !== id));
   }
 
-  function handleFile(file) {
-    if (!file) return;
-    setFileSizeError(null);
-    if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
-      setFileSizeError(`檔案 ${mb} MB 超過 ${MAX_FILE_MB} MB 上限，請壓縮後再上傳。`);
-      setFileName('');
-      onFileObject(null);
-      return;
+  function handleFiles(newFiles) {
+    if (!newFiles || newFiles.length === 0) return;
+    const arr = Array.from(newFiles);
+    const errors = [];
+    const valid = [];
+    arr.forEach(f => {
+      if (f.size > MAX_FILE_MB * 1024 * 1024) {
+        errors.push(`「${f.name}」(${(f.size/1024/1024).toFixed(1)} MB) 超過 ${MAX_FILE_MB} MB 上限`);
+      } else {
+        valid.push(f);
+      }
+    });
+    setFileSizeErrors(errors);
+    if (valid.length > 0) {
+      setFileObjects(prev => {
+        const existingNames = new Set(prev.map(f => f.name));
+        return [...prev, ...valid.filter(f => !existingNames.has(f.name))];
+      });
     }
-    setFileName(file.name);
-    onFileObject(file);
+  }
+
+  function removeFile(index) {
+    setFileObjects(prev => prev.filter((_, i) => i !== index));
   }
 
   function toggleType(id) {
@@ -405,57 +459,73 @@ function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         style={{ display: 'none' }}
-        onChange={e => handleFile(e.target.files?.[0])}
+        onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
       />
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault(); setDragOver(false);
-          handleFile(e.dataTransfer.files?.[0]);
+          handleFiles(e.dataTransfer.files);
         }}
         style={{
           background: dragOver ? PALETTE.purple : PALETTE.panel,
           border: `3px dashed ${dragOver ? PALETTE.gold : PALETTE.line}`,
-          padding: 36, textAlign: 'center',
-          cursor: 'pointer', marginBottom: 22,
+          padding: '24px 36px', textAlign: 'center',
+          cursor: 'pointer', marginBottom: fileObjects.length > 0 ? 10 : 22,
           transition: 'background 100ms steps(2)',
-          position: 'relative',
         }}
         onClick={() => fileInputRef.current?.click()}
       >
-        <div style={{ fontSize: 48, marginBottom: 8 }}>{dragOver ? '📥' : '📂'}</div>
-        {fileName ? (
-          <>
-            <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 18, color: PALETTE.text, fontWeight: 700 }}>
-              ✓ {fileName}
-            </div>
-            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: PALETTE.cyan, marginTop: 10 }}>
-              CLICK TO CHANGE
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 18, color: PALETTE.text }}>
-              拖拉檔案到這裡
-            </div>
-            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: PALETTE.textDim, marginTop: 8 }}>
-              OR CLICK TO BROWSE
-            </div>
-          </>
-        )}
+        <div style={{ fontSize: 40, marginBottom: 6 }}>{dragOver ? '📥' : '📂'}</div>
+        <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 16, color: PALETTE.text }}>
+          {dragOver ? '放開以加入檔案' : '拖拉檔案到這裡（可多選）'}
+        </div>
+        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: PALETTE.textDim, marginTop: 6 }}>
+          OR CLICK TO BROWSE · MAX {MAX_FILE_MB}MB / FILE
+        </div>
       </div>
 
+      {/* 已選檔案清單 */}
+      {fileObjects.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: PALETTE.cyan, marginBottom: 8 }}>
+            ▼ 已選 {fileObjects.length} 個檔案
+          </div>
+          {fileObjects.map((f, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: PALETTE.panel, border: `2px solid ${PALETTE.border}`,
+              padding: '7px 12px', marginBottom: 6,
+            }}>
+              <span style={{ fontSize: 16 }}>📄</span>
+              <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {f.name}
+              </span>
+              <span style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim }}>
+                {(f.size/1024/1024).toFixed(1)} MB
+              </span>
+              <div
+                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                style={{ cursor: 'pointer', color: PALETTE.red, fontFamily: "'Press Start 2P', monospace", fontSize: 10, padding: '2px 6px' }}
+                title="移除此檔案"
+              >✕</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 檔案大小錯誤 */}
-      {fileSizeError && (
+      {fileSizeErrors.length > 0 && (
         <div style={{
           background: '#3d0000', border: '2px solid #ff5e5b',
           borderRadius: 4, padding: '10px 16px', marginBottom: 16,
           fontFamily: "'DotGothic16', monospace", fontSize: 14,
           color: '#ff5e5b',
         }}>
-          ⚠ {fileSizeError}
+          {fileSizeErrors.map((e, i) => <div key={i}>⚠ {e}</div>)}
         </div>
       )}
 
@@ -799,7 +869,7 @@ function StepPickFile({ fileName, setFileName, onFileObject, typeIds, setTypeIds
 }
 
 // ========== Step 3: 預覽 mapping + 積分 ==========
-function StepPreview({ courseCode, courseName, types, fileName, delta, state, uploadError, onBack, onConfirm }) {
+function StepPreview({ courseCode, courseName, types, fileNames, delta, state, uploadError, onBack, onConfirm }) {
   const hardestType = types.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), types[0]);
   return (
     <div>
@@ -807,32 +877,41 @@ function StepPreview({ courseCode, courseName, types, fileName, delta, state, up
 
       {/* 檔案摘要 */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 14,
-        background: PALETTE.panel, padding: 14, alignItems: 'center',
+        background: PALETTE.panel, padding: 14,
         border: `2px solid ${PALETTE.border}`, boxShadow: pixelShadow(PALETTE.shadow, 3),
         marginBottom: 22,
       }}>
-        <div style={{ fontSize: 36 }}>{hardestType.icon}</div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 16, color: PALETTE.text, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {fileName}
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 14, alignItems: 'center', marginBottom: fileNames.length > 1 ? 10 : 0 }}>
+          <div style={{ fontSize: 36 }}>{hardestType.icon}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: PALETTE.cyan, marginBottom: 4 }}>
+              {fileNames.length} 個檔案 · {courseCode} {courseName}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {types.map(t => (
+                <span key={t.id} style={{
+                  fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                  background: PALETTE.panelLt, color: PALETTE.text,
+                  padding: '2px 8px', border: `1px solid ${PALETTE.border}`,
+                }}>
+                  {t.icon} {t.name}
+                </span>
+              ))}
+            </div>
           </div>
-          <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.textDim, marginTop: 4 }}>
-            <span style={{ color: PALETTE.cyan, fontFamily: "'Press Start 2P', monospace", fontSize: 10 }}>{courseCode}</span> {courseName}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-            {types.map(t => (
-              <span key={t.id} style={{
-                fontFamily: "'DotGothic16', monospace", fontSize: 12,
-                background: PALETTE.panelLt, color: PALETTE.text,
-                padding: '2px 8px', border: `1px solid ${PALETTE.border}`,
-              }}>
-                {t.icon} {t.name}
-              </span>
-            ))}
-          </div>
+          <DifficultyBadge level={hardestType.difficulty} />
         </div>
-        <DifficultyBadge level={hardestType.difficulty} />
+        {fileNames.map((name, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.textDim,
+            borderTop: i === 0 ? `1px solid ${PALETTE.border}` : 'none',
+            paddingTop: i === 0 ? 8 : 0, marginTop: i === 0 ? 0 : 4,
+          }}>
+            <span>📄</span>
+            <span style={{ color: PALETTE.text }}>{name}</span>
+          </div>
+        ))}
       </div>
 
       {/* 對應指標 */}
