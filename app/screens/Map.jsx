@@ -1,7 +1,7 @@
 // 主地圖：五大關卡卡牌式儀表板 + 玩家狀態
 // 依賴：React, PALETTE, PixelBox, PixelButton, StatBar, IndicatorChip, STAGES, INDICATORS, BADGES
 
-function ScreenMap({ state, uploads, team, playerName, onOpenStage, onOpenUpload, onOpenAchievements, onOpenProfile }) {
+function ScreenMap({ state, uploads, team, playerName, customTypes, onOpenStage, onOpenUpload, onOpenAchievements, onOpenProfile, onEditUpload }) {
   return (
     <div style={{ padding: '24px 28px 60px', maxWidth: 1280, margin: '0 auto' }}>
       {/* ========= 頂部玩家狀態 ========= */}
@@ -40,9 +40,9 @@ function ScreenMap({ state, uploads, team, playerName, onOpenStage, onOpenUpload
         </div>
       </div>
 
-      {/* ========= 最近活動 + 徽章 ========= */}
+      {/* ========= 關鍵資料檔案庫 + 徽章 ========= */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, marginTop: 40 }}>
-        <RecentActivity uploads={uploads} />
+        <RecentActivity uploads={uploads} customTypes={customTypes || []} onEditUpload={onEditUpload} />
         <BadgeShelf state={state} onSeeAll={onOpenAchievements} />
       </div>
     </div>
@@ -271,90 +271,183 @@ function StageCard({ stage, idx, progress, onClick }) {
   );
 }
 
-// ========== 最近活動 ==========
-function RecentActivity({ uploads }) {
-  const items = [...uploads].slice(-6).reverse();
+// ========== 關鍵資料檔案庫 ==========
+function RecentActivity({ uploads, customTypes, onEditUpload }) {
+  const items = [...uploads].reverse();
+  const [editingId, setEditingId] = React.useState(null);
+  const [editTypeIds, setEditTypeIds] = React.useState([]);
+
+  function startEdit(u) {
+    setEditingId(u.id);
+    setEditTypeIds(getUploadTypeIds(u));
+  }
+
+  function toggleEditType(id) {
+    setEditTypeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function saveEdit() {
+    if (onEditUpload && editTypeIds.length > 0) onEditUpload(editingId, editTypeIds);
+    setEditingId(null);
+  }
+
   return (
     <div>
-      <h2 style={titleStyle}>▼ 冒險日誌 LOG</h2>
+      <h2 style={titleStyle}>▼ 關鍵資料檔案庫</h2>
       <PixelBox color={PALETTE.bgAlt} padding={0}>
         {items.length === 0 && (
           <div style={{ padding: 20, textAlign: 'center', fontFamily: "'DotGothic16', monospace", color: PALETTE.textDim }}>
-            還沒開始冒險…
+            還沒有上傳任何資料…
           </div>
         )}
-        {items.map((u, i) => {
-          const tids = getUploadTypeIds(u);
-          const ts = tids.map(id => resolveType(id)).filter(Boolean);
-          if (!ts.length) return null;
-          const hardest = ts.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), ts[0]);
+        <div style={{ maxHeight: 480, overflowY: 'auto' }}>
+          {items.map((u, i) => {
+            const tids = getUploadTypeIds(u);
+            const ts = tids.map(id => resolveType(id)).filter(Boolean);
+            if (!ts.length) return null;
+            const hardest = ts.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), ts[0]);
+            const indIds = hardest.maps || [];
+            const firstInd = INDICATORS.find(ind => ind.id === indIds[0]);
+            const stage = firstInd ? STAGES.find(s => s.id === firstInd.stage) : null;
+            const stageColor = stage?.color || '#46468a';
+            const indLabel = indIds.slice(0, 4).map(id => `#${id}`).join(' ');
+            const isEditing = editingId === u.id;
 
-          // 取指標編號與階段色
-          const indIds = hardest.maps || [];
-          const firstInd = INDICATORS.find(ind => ind.id === indIds[0]);
-          const stage = firstInd ? STAGES.find(s => s.id === firstInd.stage) : null;
-          const stageColor = stage?.color || '#46468a';
-          const indLabel = indIds.slice(0, 4).map(id => `#${id}`).join(' ');
-
-          return (
-            <div key={u.id} style={{
-              display: 'grid', gridTemplateColumns: 'auto 1fr auto',
-              gap: 12, padding: '10px 14px', alignItems: 'center',
-              borderBottom: i === items.length - 1 ? 'none' : `2px dashed ${PALETTE.line}`,
-            }}>
-              <div style={{ fontSize: 22, display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
-                {ts.slice(0, 3).map((t, idx) => <span key={idx}>{t.icon}</span>)}
-                {ts.length > 3 && <span style={{ fontSize: 12, color: PALETTE.textDim, fontFamily: "'Press Start 2P', monospace", alignSelf: 'center' }}>+{ts.length - 3}</span>}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {u.fileName}
-                </div>
-                <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  <span style={{ color: PALETTE.cyan, fontFamily: "'Press Start 2P', monospace", fontSize: 9, marginRight: 4 }}>{u.courseCode || '—'}</span>
-                  {u.courseName || '(未指定課程)'} · {u.ts}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  background: stageColor, color: '#000',
-                  borderRadius: 4, padding: '3px 8px',
-                  fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
-                  whiteSpace: 'nowrap',
+            return (
+              <div key={u.id}>
+                {/* 主行 */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: 'auto 1fr auto',
+                  gap: 12, padding: '10px 14px', alignItems: 'center',
+                  borderBottom: (!isEditing && i === items.length - 1) ? 'none' : `2px dashed ${PALETTE.line}`,
+                  background: isEditing ? PALETTE.panel : 'transparent',
                 }}>
-                  {indLabel} · {hardest.name}
-                </span>
-                {u.fileUrl ? (
-                  <button
-                    onClick={() => window.open(u.fileUrl, '_blank')}
-                    style={{
-                      background: 'transparent',
-                      border: `1px solid ${PALETTE.cyan}`,
-                      color: PALETTE.cyan,
-                      borderRadius: 3, padding: '3px 10px',
+                  <div style={{ fontSize: 22, display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
+                    {ts.slice(0, 3).map((t, idx) => <span key={idx}>{t.icon}</span>)}
+                    {ts.length > 3 && <span style={{ fontSize: 12, color: PALETTE.textDim, fontFamily: "'Press Start 2P', monospace", alignSelf: 'center' }}>+{ts.length - 3}</span>}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 14, color: PALETTE.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {u.fileName}
+                    </div>
+                    <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ color: PALETTE.cyan, fontFamily: "'Press Start 2P', monospace", fontSize: 9, marginRight: 4 }}>{u.courseCode || '—'}</span>
+                      {u.courseName || '(未指定課程)'} · {u.ts}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      background: stageColor, color: '#000',
+                      borderRadius: 4, padding: '3px 8px',
                       fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                      cursor: 'pointer', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    ▶ 檢視
-                  </button>
-                ) : (
-                  <span
-                    title="檔案儲存於上傳當時的瀏覽器本機，此裝置或瀏覽器無法檢視"
-                    style={{
-                      color: PALETTE.textDim,
-                      fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                      padding: '3px 8px', cursor: 'help',
-                      border: `1px dashed ${PALETTE.line}`, borderRadius: 3,
-                    }}
-                  >⚠ 無本機檔</span>
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {indLabel} · {hardest.name}
+                    </span>
+                    <div style={{ display: 'flex', gap: 5 }}>
+                      {onEditUpload && (
+                        <button
+                          onClick={() => isEditing ? setEditingId(null) : startEdit(u)}
+                          style={{
+                            background: isEditing ? PALETTE.purple + '44' : 'transparent',
+                            border: `1px solid ${PALETTE.purple}`,
+                            color: PALETTE.purple,
+                            borderRadius: 3, padding: '3px 8px',
+                            fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                            cursor: 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >✏ 修改</button>
+                      )}
+                      {u.fileUrl ? (
+                        <button
+                          onClick={() => window.open(u.fileUrl, '_blank')}
+                          style={{
+                            background: 'transparent',
+                            border: `1px solid ${PALETTE.cyan}`,
+                            color: PALETTE.cyan,
+                            borderRadius: 3, padding: '3px 8px',
+                            fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                            cursor: 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >▶ 檢視</button>
+                      ) : (
+                        <span title="檔案儲存於上傳當時的瀏覽器本機，此裝置或瀏覽器無法檢視"
+                          style={{
+                            color: PALETTE.textDim, fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                            padding: '3px 8px', cursor: 'help',
+                            border: `1px dashed ${PALETTE.line}`, borderRadius: 3,
+                          }}
+                        >⚠ 無本機檔</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 修改指標 inline panel */}
+                {isEditing && (
+                  <div style={{
+                    background: PALETTE.bg, padding: '12px 14px',
+                    borderBottom: `2px dashed ${PALETTE.line}`,
+                    borderLeft: `3px solid ${PALETTE.purple}`,
+                  }}>
+                    <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: PALETTE.purple, marginBottom: 10 }}>
+                      ✏ 修改佐證類型（可複選）
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                      {EVIDENCE_TYPES.map(t => {
+                        const active = editTypeIds.includes(t.id);
+                        return (
+                          <div key={t.id} onClick={() => toggleEditType(t.id)} style={{
+                            padding: '5px 10px', cursor: 'pointer', borderRadius: 3,
+                            background: active ? PALETTE.gold : PALETTE.panel,
+                            color: active ? '#000' : PALETTE.text,
+                            border: `2px solid ${active ? PALETTE.gold : PALETTE.border}`,
+                            fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                            display: 'flex', alignItems: 'center', gap: 5,
+                          }}>
+                            {active && <span style={{ fontSize: 10 }}>✓</span>}
+                            {t.icon} {t.name}
+                          </div>
+                        );
+                      })}
+                      {customTypes.map(ct => {
+                        const active = editTypeIds.includes(ct.id);
+                        return (
+                          <div key={ct.id} onClick={() => toggleEditType(ct.id)} style={{
+                            padding: '5px 10px', cursor: 'pointer', borderRadius: 3,
+                            background: active ? PALETTE.cyan + '33' : PALETTE.panel,
+                            color: active ? PALETTE.cyan : PALETTE.text,
+                            border: `2px solid ${active ? PALETTE.cyan : PALETTE.border}`,
+                            fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                            display: 'flex', alignItems: 'center', gap: 5,
+                          }}>
+                            {active && <span style={{ fontSize: 10 }}>✓</span>}
+                            ✏ {ct.name}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button onClick={() => setEditingId(null)} style={{
+                        background: 'transparent', border: `1px solid ${PALETTE.line}`,
+                        color: PALETTE.textDim, borderRadius: 3, padding: '5px 12px',
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 8, cursor: 'pointer',
+                      }}>✕ 取消</button>
+                      <button onClick={saveEdit} disabled={editTypeIds.length === 0} style={{
+                        background: editTypeIds.length > 0 ? PALETTE.purple : '#555',
+                        border: 'none', color: '#fff', borderRadius: 3, padding: '5px 12px',
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                        cursor: editTypeIds.length > 0 ? 'pointer' : 'default',
+                      }}>✓ 儲存</button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </PixelBox>
     </div>
   );

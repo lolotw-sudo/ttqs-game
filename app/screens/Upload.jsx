@@ -47,7 +47,7 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
   const courseReady = courseCode.trim() && courseName.trim();
 
   const today = new Date();
-  const ts = `${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  const ts = `${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')} ${String(today.getHours()).padStart(2,'0')}:${String(today.getMinutes()).padStart(2,'0')}`;
 
   // 每個檔案建一筆 draftUpload（共用 typeIds / 課程）
   const draftUploads = typeIds.length && courseReady && fileObjects.length > 0

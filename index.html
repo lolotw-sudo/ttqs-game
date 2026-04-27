@@ -309,6 +309,13 @@
         setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
       }
 
+      function handleEditUpload(uploadId, newTypeIds) {
+        const newUploads = uploads.map(u => u.id === uploadId ? { ...u, typeIds: newTypeIds } : u);
+        const updatedPlayer = { ...currentPlayer, uploads: newUploads };
+        savePlayer(updatedPlayer);
+        setPlayers(prev => prev.map(p => p.id === currentPlayerId ? updatedPlayer : p));
+      }
+
       function isCustomTypeUsed(tid) {
         return players.some(p => (p.uploads || []).some(u => (u.typeIds || []).includes(tid)));
       }
@@ -408,10 +415,12 @@
             {currentPlayer && screen === 'map' && (
               <ScreenMap
                 state={state} uploads={uploads} team={team} playerName={playerName}
+                customTypes={customTypes}
                 onOpenStage={(id) => { setFocusStage(id); setScreen('achievements'); }}
                 onOpenUpload={() => setScreen('upload')}
                 onOpenAchievements={() => { setFocusStage(null); setScreen('achievements'); }}
                 onOpenProfile={() => setScreen('profile')}
+                onEditUpload={handleEditUpload}
               />
             )}
             {currentPlayer && screen === 'upload' && (
