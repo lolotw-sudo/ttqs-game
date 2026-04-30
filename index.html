@@ -451,6 +451,7 @@
             {currentPlayer && screen === 'achievements' && (
               <ScreenAchievements
                 state={state} uploads={uploads} focusStage={focusStage}
+                player={currentPlayer}
                 onClose={() => setScreen('map')}
                 onOpenUpload={() => setScreen('upload')}
                 onDeleteUpload={handleDeleteUpload}

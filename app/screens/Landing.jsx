@@ -522,6 +522,7 @@ function TeamAchievementModal({ team, players, onClose }) {
             state={state}
             uploads={allUploads}
             playerMap={playerMap}
+            teamData={team}
             onClose={() => setSelected(null)}
           />
         )}

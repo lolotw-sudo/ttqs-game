@@ -50,7 +50,8 @@ function IndicatorCard({ ind, state, onClick }) {
 }
 
 // 成就/指標詳情：19 項指標完整狀態 + 白話說明 + 對應資料
-function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpload, focusStage = null }) {
+function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpload, focusStage = null, player = null }) {
+  const teamData = player ? (TEAMS.find(t => t.id === player.team) || null) : null;
   const [stageFilter, setStageFilter] = useState(focusStage || 'ALL');
   const [selected, setSelected] = useState(null);
 
@@ -96,7 +97,7 @@ function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpl
       {/* 詳情 modal */}
       {selected && (
         <IndicatorDetail indicator={selected} state={state} uploads={uploads}
-          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload} onDeleteUpload={onDeleteUpload} />
+          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload} onDeleteUpload={onDeleteUpload} teamData={teamData} />
       )}
     </div>
   );
@@ -118,7 +119,7 @@ function FilterPill({ children, active, color, onClick }) {
   );
 }
 
-function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload, playerMap = null }) {
+function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload, playerMap = null, teamData = null }) {
   const stage = STAGES.find(s => s.id === indicator.stage);
   const status = state.indicatorStatus[indicator.id];
   const relevantUploads = uploads.filter(u => {
@@ -186,8 +187,8 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
               // 建議檔名
               const cleanStr = s => (s || '').replace(/[\/\\:*?"<>|\s]/g, '_').replace(/_+/g, '_');
               const getExt  = f => { const p = (f || '').split('.'); return p.length > 1 ? p.pop() : 'pdf'; };
-              const code = u.courseCode ? cleanStr(u.courseCode) + '_' : '';
-              const suggestedName = `${cleanStr(primaryType.name)}_指標${indicator.id}_${cleanStr(indicator.name)}_${code}${cleanStr(u.courseName)}.${getExt(u.fileName)}`;
+              const tName   = cleanStr(teamData?.name || '');
+              const suggestedName = `指標${indicator.id}_${cleanStr(primaryType.name)}_${tName}_${cleanStr(u.courseName)}.${getExt(u.fileName)}`;
 
               return (
                 <div key={u.id} style={{
