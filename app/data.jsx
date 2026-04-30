@@ -135,7 +135,7 @@ const EVIDENCE_TYPES = [
     desc: '目標客戶培訓需求調查（中華電信、子公司）；需求訪談記錄及課程規劃會議',
   },
   {
-    id: 'cert_program', name: '學程認證計劃書',     icon: '📋', difficulty: 5, maps: [5, 8],
+    id: 'cert_program', name: '學程認證計劃書',     icon: '📋', difficulty: 5, maps: [5, 8, 9],
     unit: '學系',
     desc: '學程認證班與公司策略／重點業務結合；學程認證計劃書及培訓品質檢核表',
   },
@@ -147,9 +147,44 @@ const EVIDENCE_TYPES = [
     desc: '培訓師證照及結訓證書；學院人員執掌說明',
   },
   {
+    id: 'trainer_cert',       name: '培訓師專業證照',       icon: '📜', difficulty: 2, maps: [6],
+    unit: '學系',
+    desc: '培訓師持有之專業證照影本或電子檔',
+  },
+  {
+    id: 'trainer_course_plan',name: '培訓相關課程規劃',     icon: '📋', difficulty: 2, maps: [6],
+    unit: '學系',
+    desc: '培訓師規劃或參與之相關課程計畫文件',
+  },
+  {
+    id: 'supervisor_assign',  name: '主管指派訓練課程',     icon: '📌', difficulty: 2, maps: [6],
+    unit: '學系',
+    desc: '主管指派培訓師參加訓練課程之簽核或通知紀錄',
+  },
+  {
+    id: 'trainer_reflection', name: '培訓師受訓心得',       icon: '✍️', difficulty: 2, maps: [6],
+    unit: '學系',
+    desc: '培訓師參加課程或研習後撰寫之受訓心得報告',
+  },
+  {
     id: 'competency',   name: '職能分析圖',         icon: '🧬', difficulty: 5, maps: [7],
     unit: '學系',
     desc: '職能分析流程及職能資源搜集分析',
+  },
+  {
+    id: 'needs_source',   name: '需求來源',           icon: '🔎', difficulty: 2, maps: [7],
+    unit: '學系',
+    desc: '訓練需求來源說明文件，如調查表、訪談摘要或業務單位提案',
+  },
+  {
+    id: 'competency_swp', name: '職能分析 SWP',       icon: '🧭', difficulty: 2, maps: [7],
+    unit: '學系',
+    desc: '策略性人力規劃（Strategic Workforce Planning）之職能分析文件',
+  },
+  {
+    id: 'pre_question',  name: '課前提問',           icon: '❓', difficulty: 1, maps: [8, 9],
+    unit: '學系',
+    desc: '可反應學員或需求單位對於課程的期待，培訓師將其列入課程設計',
   },
   {
     id: 'course_plan',  name: '開班計畫書',         icon: '📝', difficulty: 3, maps: [8, 12],
@@ -162,9 +197,59 @@ const EVIDENCE_TYPES = [
     desc: '定期報告會議，檢討精進作為（處務會議）',
   },
   {
+    id: 'completion_report', name: '結案報告',         icon: '📑', difficulty: 3, maps: [8, 9],
+    unit: '學系',
+    desc: '說明完訓人數或證照數，用以呈報成果的佐證資料',
+  },
+  {
+    id: 'regular_review',    name: '定期檢討會議',     icon: '🗂️', difficulty: 3, maps: [8],
+    unit: '學系',
+    desc: '說明遭遇問題、改善方式與應變作為，類似月報、週報',
+  },
+  {
+    id: 'improvement',       name: '精進作為',         icon: '🔧', difficulty: 3, maps: [8],
+    unit: '學系',
+    desc: '彙整學員回饋，並在下期課程中針對問題提出具體改善',
+  },
+  {
     id: 'stakeholder',  name: '利益關係人參與圖',   icon: '🤝', difficulty: 4, maps: [9],
     unit: '培發',
     desc: '利益關係人參與圖、參與過程紀錄',
+  },
+  {
+    id: 'pre_notice',           name: '課前通知',             icon: '📨', difficulty: 1, maps: [9],
+    unit: '學系',
+    desc: '透過 eDM、eLearning、email 或任意形式通知學員的課前通知',
+  },
+  {
+    id: 'classroom_log',        name: '教室日誌（異常）',     icon: '🚨', difficulty: 3, maps: [9],
+    unit: '學系',
+    desc: 'TIS 系統截圖，須選取有異常的紀錄（如學員請假、未報到），最好附有通知主管的紀錄',
+  },
+  {
+    id: 'design_meeting',       name: '課程規劃設計會議紀錄', icon: '🗓️', difficulty: 2, maps: [9],
+    unit: '學系',
+    desc: '有利益關係人參與之課程規劃設計會議紀錄',
+  },
+  {
+    id: 'external_material_req',name: '外購教材申請單',       icon: '📦', difficulty: 2, maps: [9],
+    unit: '學系',
+    desc: '向外採購教材之申請簽核單據',
+  },
+  {
+    id: 'teacher_hire',         name: '師資遴選聘任簽報單',   icon: '📄', difficulty: 2, maps: [9],
+    unit: '學系',
+    desc: '師資遴選評估與聘任之簽報文件',
+  },
+  {
+    id: 'cert_photo',           name: '訓練成果證書或合照',   icon: '🎓', difficulty: 2, maps: [9],
+    unit: '學系',
+    desc: '學員結訓證書或訓練結束時師生合照',
+  },
+  {
+    id: 'class_photo',          name: '課堂照片',             icon: '📷', difficulty: 2, maps: [9],
+    unit: '學系',
+    desc: '課程進行中之課堂教學或活動照片',
   },
 
   // ── D2 課程執行 ─────────────────────────────────────────
@@ -172,6 +257,26 @@ const EVIDENCE_TYPES = [
     id: 'mgmt_system',  name: '訓練管理制度文件',   icon: '⚙️', difficulty: 4, maps: [10],
     unit: '培發',
     desc: '師資管理、教材管理、採購制度及個資保護說明',
+  },
+  {
+    id: 'teacher_change',     name: '更換教師記錄',       icon: '🔄', difficulty: 2, maps: [10],
+    unit: '學系',
+    desc: '課程進行中更換授課教師之申請或通知紀錄',
+  },
+  {
+    id: 'new_teacher_sign',   name: '新聘講師簽核記錄',   icon: '✅', difficulty: 2, maps: [10],
+    unit: '學系',
+    desc: '新聘外部講師之資格審查與簽核流程文件',
+  },
+  {
+    id: 'digital_material_mgmt', name: '數位教材管理佐證', icon: '💾', difficulty: 2, maps: [10],
+    unit: '多元處',
+    desc: '數位教材建置、維護與管理之相關佐證文件',
+  },
+  {
+    id: 'material_purchase',  name: '教材採購流程簽呈', icon: '🖊️', difficulty: 1, maps: [10],
+    unit: '學系',
+    desc: '採購簽呈會有相對應利益關係人的簽核',
   },
   {
     id: 'needs_case',   name: '課程需求設計案例',   icon: '🔍', difficulty: 4, maps: [11],
@@ -233,17 +338,17 @@ const EVIDENCE_TYPES = [
 
   // ── O 成效成果 ──────────────────────────────────────────
   {
-    id: 'feedback',     name: '學員課後反映',       icon: '🗣️', difficulty: 4, maps: [17],
+    id: 'feedback',     name: '學員課後反映',       icon: '🗣️', difficulty: 4, maps: [9, 17],
     unit: '學系',
     desc: '反應評估：學員意見反應事項，最後說明我們有改善',
   },
   {
-    id: 'assessment',   name: '學員評量成果',       icon: '📝', difficulty: 2, maps: [17],
+    id: 'assessment',   name: '學員評量成果',       icon: '📝', difficulty: 2, maps: [8, 17],
     unit: '學系',
     desc: '學習評估：學員受訓成績評量、數位及實體課前／課後評量（考試／實作報告）、學員證照通過率；評量結果呈現：成績單／結業證書',
   },
   {
-    id: 'survey',       name: '滿意度調查',         icon: '📊', difficulty: 3, maps: [17, 19],
+    id: 'survey',       name: '滿意度調查',         icon: '📊', difficulty: 3, maps: [9, 17, 19],
     unit: '學系',
     desc: '學習滿意度持續提升；幫助學員有良好職涯發展',
   },
