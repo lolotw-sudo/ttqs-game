@@ -310,29 +310,44 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           {suggestedTypes.map(t => (
             <div key={t.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
               background: PALETTE.panel, border: `2px solid ${PALETTE.border}`,
-              padding: '8px 10px',
+              padding: '10px 12px',
             }}>
-              <span style={{ fontSize: 20 }}>{t.icon}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              {/* 第一行：名稱 + 單位 + 難度 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: t.desc ? 6 : 0 }}>
                 <span style={{
                   fontFamily: "'DotGothic16', monospace", fontSize: 13,
                   background: PALETTE.green + '22', color: PALETTE.green,
                   padding: '1px 7px', border: `1px solid ${PALETTE.green}`,
+                  whiteSpace: 'nowrap',
                 }}>{t.name}</span>
                 {t.unit && (
-                  <div style={{
-                    display: 'inline-block', marginTop: 4, marginLeft: 6,
+                  <span style={{
                     fontFamily: "'Press Start 2P', monospace", fontSize: 7,
                     background: PALETTE.panelLt, color: PALETTE.cyan,
                     padding: '2px 6px', border: `1px solid ${PALETTE.line}`,
-                  }}>
-                    {t.unit}
-                  </div>
+                    whiteSpace: 'nowrap',
+                  }}>{t.unit}</span>
                 )}
+                <span style={{
+                  marginLeft: 'auto',
+                  display: 'inline-flex', alignItems: 'center',
+                  background: DIFFICULTY_POINTS[t.difficulty].color, color: '#000',
+                  borderRadius: 4, padding: '1px 6px',
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {DIFFICULTY_POINTS[t.difficulty].label} · +{DIFFICULTY_POINTS[t.difficulty].points}
+                </span>
               </div>
-              <DifficultyBadge level={t.difficulty} compact />
+              {/* 第二行：佐證說明 */}
+              {t.desc && (
+                <div style={{
+                  fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                  color: PALETTE.textDim, lineHeight: 1.4,
+                }}>{t.desc}</div>
+              )}
             </div>
           ))}
         </div>

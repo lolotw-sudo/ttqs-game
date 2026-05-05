@@ -237,10 +237,10 @@
       // 切換畫面時捲回頂部
       useEffect(() => { window.scrollTo(0, 0); }, [screen]);
 
-      // 記錄玩家所在畫面
+      // 記錄玩家所在畫面（celebrate 不存，避免回 landing 後 lastScreen 卡在 celebrate 造成空白）
       useEffect(() => {
         if (!currentPlayerId || !dbLoaded) return;
-        if (screen === 'landing' || screen === 'teamSelect') return;
+        if (screen === 'landing' || screen === 'teamSelect' || screen === 'celebrate') return;
         window.__playersRef.child(currentPlayerId).child('lastScreen').set(screen).catch(console.error);
         setPlayers(prev => prev.map(p =>
           p.id === currentPlayerId ? { ...p, lastScreen: screen } : p
@@ -262,7 +262,9 @@
         const p = players.find(x => x.id === id);
         if (!p) return;
         setCurrentPlayerId(id);
-        setScreen(p.lastScreen || 'map');
+        // celebrate 無法單獨恢復（pendingCelebrate 已清空），一律導回 map
+        const safeScreen = (!p.lastScreen || p.lastScreen === 'celebrate') ? 'map' : p.lastScreen;
+        setScreen(safeScreen);
       }
 
       function handleTeamSelect({ name, teamId }) {
@@ -274,6 +276,8 @@
           lastScreen: 'map',
         };
         savePlayer(newPlayer);
+        // 立即加入本地 state，讓 currentPlayer 不為 null（Firebase 回調前的空白畫面 bug 修正）
+        setPlayers(prev => prev.some(p => p.id === newPlayer.id) ? prev : [...prev, newPlayer]);
         setCurrentPlayerId(newPlayer.id);
         setScreen('map');
       }

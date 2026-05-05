@@ -60,10 +60,10 @@ const INDICATORS = [
   { id: 5,  stage: 'P',  name: '訓練目標連結',       plain: '課程有對齊公司五大策略主軸',     difficulty: 4 },
 
   // D1: 課程設計 (6-9)
-  { id: 6,  stage: 'D1', name: '人員技能',           plain: '培訓師的資歷、職務與證照',       difficulty: 2 },
-  { id: 7,  stage: 'D1', name: '需求設計',           plain: '有做職能分析與訓練需求訪談',     difficulty: 5 },
-  { id: 8,  stage: 'D1', name: '課程設計',           plain: '課程計畫書與設計流程文件',       difficulty: 5 },
-  { id: 9,  stage: 'D1', name: '利益關係人',         plain: '需求單位有參與課程設計過程',     difficulty: 4 },
+  { id: 6,  stage: 'D1', name: '人員技能',           plain: '說明學院培訓師的專業以及學院學系如何輔以培訓師所需的訓練',       difficulty: 2 },
+  { id: 7,  stage: 'D1', name: '需求設計',           plain: '用一個班說明：資料蒐集、職能分析（GAP 在哪）、需求訪談紀錄、需求調查，以及課程規劃會議或課程計畫書',     difficulty: 5 },
+  { id: 8,  stage: 'D1', name: '課程設計',           plain: '以 ADDIE 揭示一門課程規劃的流程：學程或專案計畫書 → 開班計畫表 → 學員課前提問（並融入講師教學的例子）→ 學程品質檢核表 → 評量學員成果 → L1～L4 滿意度調查 → 檢討報告 → 下次精進',       difficulty: 5 },
+  { id: 9,  stage: 'D1', name: '利益關係人',         plain: '從 PDDRO 全流程檢視：需求窗口、學員、廠商、行政、老師、老闆、政府官員等利益關係人有參與的環節，都可放佐證，有照片更好',     difficulty: 4 },
 
   // D2: 課程執行 (10-13)
   { id: 10, stage: 'D2', name: '訓練管理',           plain: '師資、教材、採購有完整制度',     difficulty: 4 },
@@ -142,7 +142,7 @@ const EVIDENCE_TYPES = [
 
   // ── D1 課程設計 ─────────────────────────────────────────
   {
-    id: 'staff_cert',   name: '培訓師證照 / 執掌', icon: '🏅', difficulty: 2, maps: [6],
+    id: 'staff_cert',   name: '學院人員執掌說明', icon: '🏅', difficulty: 2, maps: [6],
     unit: '學系 / 培發',
     desc: '培訓師證照及結訓證書；學院人員執掌說明',
   },
@@ -227,7 +227,7 @@ const EVIDENCE_TYPES = [
     desc: 'TIS 系統截圖，須選取有異常的紀錄（如學員請假、未報到），最好附有通知主管的紀錄',
   },
   {
-    id: 'design_meeting',       name: '課程規劃設計會議紀錄', icon: '🗓️', difficulty: 2, maps: [9],
+    id: 'design_meeting',       name: '課程規劃設計會議紀錄', icon: '🗓️', difficulty: 2, maps: [7, 9],
     unit: '學系',
     desc: '有利益關係人參與之課程規劃設計會議紀錄',
   },
