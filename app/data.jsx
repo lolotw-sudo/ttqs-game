@@ -227,7 +227,7 @@ const EVIDENCE_TYPES = [
     desc: 'TIS 系統截圖，須選取有異常的紀錄（如學員請假、未報到），最好附有通知主管的紀錄',
   },
   {
-    id: 'design_meeting',       name: '課程規劃設計會議紀錄', icon: '🗓️', difficulty: 2, maps: [7, 9],
+    id: 'design_meeting',       name: '課程規劃設計佐證資料', icon: '🗓️', difficulty: 2, maps: [7, 9],
     unit: '學系',
     desc: '有利益關係人參與之課程規劃設計會議紀錄',
   },
