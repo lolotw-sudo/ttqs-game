@@ -36,8 +36,11 @@ function computeMultiDelta(existingUploads, drafts) {
 
 function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes = [], isCustomTypeUsed, onCancel, onConfirm }) {
   const [step, setStep] = useState(1);
-  const [courseCode, setCourseCode] = useState('');
-  const [courseName, setCourseName] = useState('');
+
+  const _def = (TEAM_DEFAULT_COURSES || {})[team];
+  const _existing = _def && uploads.find(u => u.courseCode === _def.code);
+  const [courseCode, setCourseCode] = useState(_existing?.courseCode || _def?.code || '');
+  const [courseName, setCourseName] = useState(_existing?.courseName || _def?.name || '');
   const [fileObjects, setFileObjects] = useState([]); // 實際 File 物件陣列
   const [typeIds, setTypeIds] = useState([]);
   const [dragOver, setDragOver] = useState(false);
@@ -75,7 +78,8 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
       let fileUrl = null;
       try {
         const storageRef = window.__storage.ref(`uploads/${safeTeam}/${uid}/${id}/${fileObj.name}`);
-        await storageRef.put(fileObj);
+        const metadata = { contentType: fileObj.type || 'application/octet-stream' };
+        await storageRef.put(fileObj, metadata);
         fileUrl = await storageRef.getDownloadURL();
       } catch (e) {
         console.error('[TTQS] Storage upload failed:', e);

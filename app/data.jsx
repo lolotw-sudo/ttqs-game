@@ -227,7 +227,7 @@ const EVIDENCE_TYPES = [
     desc: 'TIS 系統截圖，須選取有異常的紀錄（如學員請假、未報到），最好附有通知主管的紀錄',
   },
   {
-    id: 'design_meeting',       name: '課程規劃設計會議紀錄', icon: '🗓️', difficulty: 2, maps: [7, 9],
+    id: 'design_meeting',       name: '課程規劃設計佐證資料', icon: '🗓️', difficulty: 2, maps: [7, 9],
     unit: '學系',
     desc: '有利益關係人參與之課程規劃設計會議紀錄',
   },
@@ -386,6 +386,14 @@ const TEAMS = [
   { id: 'dev',  name: '培發處',   emoji: '🌱', color: '#ff5e5b', desc: '人才發展核心隊' },
 ];
 
+const TEAM_DEFAULT_COURSES = {
+  web:  { code: 'NETWORK',   name: '網路學系' },
+  biz:  { code: 'BUSINESS',  name: '企管學系' },
+  info: { code: 'IT',        name: '資訊學系' },
+  div:  { code: 'DIVERSITY', name: '多元處' },
+  dev:  { code: 'PLAN',      name: '培發處' },
+};
+
 Object.assign(window, {
   STAGES,
   INDICATORS,
@@ -396,4 +404,5 @@ Object.assign(window, {
   INITIAL_UPLOADS,
   BADGES,
   TEAMS,
+  TEAM_DEFAULT_COURSES,
 });
