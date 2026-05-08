@@ -386,6 +386,14 @@ const TEAMS = [
   { id: 'dev',  name: '培發處',   emoji: '🌱', color: '#ff5e5b', desc: '人才發展核心隊' },
 ];
 
+const TEAM_DEFAULT_COURSES = {
+  web:  { code: 'NETWORK',   name: '網路學系' },
+  biz:  { code: 'BUSINESS',  name: '企管學系' },
+  info: { code: 'IT',        name: '資訊學系' },
+  div:  { code: 'DIVERSITY', name: '多元處' },
+  dev:  { code: 'PLAN',      name: '培發處' },
+};
+
 Object.assign(window, {
   STAGES,
   INDICATORS,
@@ -396,4 +404,5 @@ Object.assign(window, {
   INITIAL_UPLOADS,
   BADGES,
   TEAMS,
+  TEAM_DEFAULT_COURSES,
 });
