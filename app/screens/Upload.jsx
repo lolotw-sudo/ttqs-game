@@ -75,7 +75,8 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
       let fileUrl = null;
       try {
         const storageRef = window.__storage.ref(`uploads/${safeTeam}/${uid}/${id}/${fileObj.name}`);
-        await storageRef.put(fileObj);
+        const metadata = { contentType: fileObj.type || 'application/octet-stream' };
+        await storageRef.put(fileObj, metadata);
         fileUrl = await storageRef.getDownloadURL();
       } catch (e) {
         console.error('[TTQS] Storage upload failed:', e);
