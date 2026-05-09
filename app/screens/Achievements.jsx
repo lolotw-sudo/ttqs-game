@@ -1,11 +1,23 @@
 // ── 指標卡片（可重複使用）──
-function IndicatorCard({ ind, state, onClick }) {
+function IndicatorCard({ ind, state, uploads = [], onClick }) {
   const status = state.indicatorStatus[ind.id];
   const count  = state.perInd[ind.id].count;
   const stage  = STAGES.find(s => s.id === ind.stage);
-  const units  = [...new Set(
-    EVIDENCE_TYPES.filter(t => t.maps.includes(ind.id)).map(t => t.unit).filter(Boolean)
-  )];
+
+  const suggestedTypes = EVIDENCE_TYPES.filter(t => t.maps.includes(ind.id));
+
+  // 計算每種佐證類型的上傳筆數
+  const typeCountMap = {};
+  uploads.forEach(u => {
+    const tids = getUploadTypeIds(u);
+    tids.forEach(tid => {
+      const t = resolveType(tid);
+      if (t && t.maps.includes(ind.id)) {
+        typeCountMap[t.id] = (typeCountMap[t.id] || 0) + 1;
+      }
+    });
+  });
+
   return (
     <PixelBox hover onClick={onClick}
       color={status === 'done' ? '#244a2e' : status === 'partial' ? '#4a3d1a' : PALETTE.panel}
@@ -24,17 +36,40 @@ function IndicatorCard({ ind, state, onClick }) {
           <div style={{ fontFamily: "'DotGothic16', monospace", fontSize: 12, color: PALETTE.textDim, marginTop: 4, lineHeight: 1.3 }}>
             {ind.plain}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-            {units.map(u => (
-              <span key={u} style={{
-                fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                background: PALETTE.panelLt, color: PALETTE.cyan,
-                padding: '2px 6px', border: `1px solid ${PALETTE.line}`,
-              }}>{u}</span>
-            ))}
-          </div>
         </div>
       </div>
+
+      {/* 佐證類型清單 */}
+      <div style={{
+        marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${PALETTE.line}`,
+        display: 'flex', flexDirection: 'column', gap: 5,
+      }}>
+        {suggestedTypes.map(t => {
+          const cnt = typeCountMap[t.id] || 0;
+          const hasUploads = cnt > 0;
+          return (
+            <div key={t.id} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              padding: '4px 8px',
+              background: hasUploads ? PALETTE.green + '18' : PALETTE.panelLt,
+              border: `1px solid ${hasUploads ? PALETTE.green + '55' : PALETTE.line}`,
+            }}>
+              <span style={{
+                fontFamily: "'DotGothic16', monospace", fontSize: 11,
+                color: hasUploads ? PALETTE.green : PALETTE.textDim,
+                flex: 1, minWidth: 0,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{t.name}</span>
+              <span style={{
+                fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                color: hasUploads ? PALETTE.green : PALETTE.textDim,
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>{cnt} 筆</span>
+            </div>
+          );
+        })}
+      </div>
+
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginTop: 10, paddingTop: 10, borderTop: `2px dashed ${PALETTE.line}`,
@@ -90,7 +125,7 @@ function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpl
       {/* 指標格 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
         {visibleIndicators.map(ind => (
-          <IndicatorCard key={ind.id} ind={ind} state={state} onClick={() => setSelected(ind)} />
+          <IndicatorCard key={ind.id} ind={ind} state={state} uploads={uploads} onClick={() => setSelected(ind)} />
         ))}
       </div>
 
