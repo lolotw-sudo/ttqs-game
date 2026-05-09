@@ -1,9 +1,18 @@
 // 主地圖：五大關卡卡牌式儀表板 + 玩家狀態
 // 依賴：React, PALETTE, PixelBox, PixelButton, StatBar, IndicatorChip, STAGES, INDICATORS, BADGES
 
-function ScreenMap({ state, uploads, team, playerName, customTypes, onOpenStage, onOpenUpload, onOpenAchievements, onOpenProfile, onEditUpload }) {
+function ScreenMap({ state, uploads, team, playerName, customTypes, onOpenStage, onOpenUpload, onOpenAchievements, onOpenProfile, onEditUpload, onBack }) {
   return (
     <div style={{ padding: '24px 28px 60px', maxWidth: 1280, margin: '0 auto' }}>
+      {/* ========= 返回按鈕 ========= */}
+      {onBack && (
+        <div style={{ marginBottom: 16 }}>
+          <PixelButton size="sm" color={PALETTE.panelLt} textColor={PALETTE.text} onClick={onBack}>
+            ◀ 返回
+          </PixelButton>
+        </div>
+      )}
+
       {/* ========= 頂部玩家狀態 ========= */}
       <PlayerHUD state={state} team={team} playerName={playerName} onOpenProfile={onOpenProfile} onOpenAchievements={onOpenAchievements} />
 

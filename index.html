@@ -382,14 +382,6 @@
                   ● AUTOSAVE
                 </span>
               )}
-              {inGame && (
-                <span onClick={exitToLanding} style={{
-                  fontFamily: "'Press Start 2P', monospace", fontSize: 9,
-                  color: PALETTE.textDim, cursor: 'pointer', paddingLeft: 12,
-                }}>
-                  ◀ 回到任務入口
-                </span>
-              )}
             </div>
           )}
 
@@ -425,6 +417,7 @@
                 onOpenAchievements={() => { setFocusStage(null); setScreen('achievements'); }}
                 onOpenProfile={() => setScreen('profile')}
                 onEditUpload={handleEditUpload}
+                onBack={exitToLanding}
               />
             )}
             {currentPlayer && screen === 'upload' && (
