@@ -85,7 +85,7 @@ function IndicatorCard({ ind, state, uploads = [], onClick }) {
 }
 
 // 成就/指標詳情：19 項指標完整狀態 + 白話說明 + 對應資料
-function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpload, focusStage = null, player = null }) {
+function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpload, onEditUpload, focusStage = null, player = null }) {
   const teamData = player ? (TEAMS.find(t => t.id === player.team) || null) : null;
   const [stageFilter, setStageFilter] = useState(focusStage || 'ALL');
   const [selected, setSelected] = useState(null);
@@ -132,7 +132,8 @@ function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpl
       {/* 詳情 modal */}
       {selected && (
         <IndicatorDetail indicator={selected} state={state} uploads={uploads}
-          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload} onDeleteUpload={onDeleteUpload} teamData={teamData} />
+          onClose={() => setSelected(null)} onOpenUpload={onOpenUpload}
+          onDeleteUpload={onDeleteUpload} onEditUpload={onEditUpload} teamData={teamData} />
       )}
     </div>
   );
@@ -154,7 +155,7 @@ function FilterPill({ children, active, color, onClick }) {
   );
 }
 
-function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload, playerMap = null, teamData = null }) {
+function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload, onEditUpload, playerMap = null, teamData = null }) {
   const stage = STAGES.find(s => s.id === indicator.stage);
   const status = state.indicatorStatus[indicator.id];
   const relevantUploads = uploads.filter(u => {
@@ -165,6 +166,34 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
     });
   });
   const suggestedTypes = EVIDENCE_TYPES.filter(t => t.maps.includes(indicator.id));
+
+  const [editingId, setEditingId] = useState(null);
+  const [editTypeIds, setEditTypeIds] = useState([]);
+
+  function startEdit(u) {
+    setEditingId(u.id);
+    setEditTypeIds(getUploadTypeIds(u));
+  }
+  function toggleEditType(id) {
+    setEditTypeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+  function saveEdit() {
+    if (onEditUpload && editTypeIds.length > 0) onEditUpload(editingId, editTypeIds);
+    setEditingId(null);
+  }
+
+  function downloadFile(url, filename) {
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      })
+      .catch(() => alert('❌ 檔案下載失敗，請稍後再試'));
+  }
 
   return (
     <div onClick={onClose} style={{
@@ -225,107 +254,157 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
               const tName   = cleanStr(teamData?.name || '');
               const suggestedName = `指標${indicator.id}_${cleanStr(primaryType.name)}_${tName}_${cleanStr(u.courseName)}.${getExt(u.fileName)}`;
 
+              const isEditing = editingId === u.id;
               return (
-                <div key={u.id} style={{
-                  display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 12,
-                  padding: '10px 14px', background: PALETTE.panel,
-                  border: `2px solid ${PALETTE.border}`, marginBottom: 6, alignItems: 'center',
-                }}>
-                  {/* 第一欄：佐證類型標籤 + 成員名稱（戰隊視角） */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {matching.map(m => (
-                      <span key={m.id} style={{
-                        fontFamily: "'DotGothic16', monospace", fontSize: 12,
-                        background: PALETTE.green + '22', color: PALETTE.green,
-                        padding: '2px 8px', border: `1px solid ${PALETTE.green}`,
-                        display: 'block',
-                      }}>{m.name}</span>
-                    ))}
-                    {playerMap?.[u.id] && (
-                      <span style={{
-                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                        color: PALETTE.gold, marginTop: 2,
-                        display: 'block',
-                      }}>👤 {playerMap[u.id]}</span>
-                    )}
+                <div key={u.id} style={{ marginBottom: 6 }}>
+                  {/* 主行 */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 12,
+                    padding: '10px 14px', background: isEditing ? PALETTE.bg : PALETTE.panel,
+                    border: `2px solid ${isEditing ? PALETTE.purple : PALETTE.border}`,
+                    borderBottom: isEditing ? 'none' : undefined,
+                    alignItems: 'center',
+                  }}>
+                    {/* 第一欄：佐證類型標籤 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {matching.map(m => (
+                        <span key={m.id} style={{
+                          fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                          background: PALETTE.green + '22', color: PALETTE.green,
+                          padding: '2px 8px', border: `1px solid ${PALETTE.green}`,
+                          display: 'block',
+                        }}>{m.name}</span>
+                      ))}
+                      {playerMap?.[u.id] && (
+                        <span style={{
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                          color: PALETTE.gold, marginTop: 2, display: 'block',
+                        }}>👤 {playerMap[u.id]}</span>
+                      )}
+                    </div>
+
+                    {/* 第二欄：原始檔名（可點擊下載）/ 更新檔名 */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                          color: PALETTE.textDim, marginBottom: 2,
+                        }}>原始檔名</div>
+                        {u.fileUrl ? (
+                          <div
+                            onClick={() => downloadFile(u.fileUrl, u.fileName)}
+                            title="點擊下載原始檔案"
+                            style={{
+                              fontFamily: "'DotGothic16', monospace", fontSize: 13,
+                              color: PALETTE.cyan, cursor: 'pointer',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              textDecoration: 'underline',
+                            }}>{u.fileName}</div>
+                        ) : (
+                          <div style={{
+                            fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.textDim,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{u.fileName}</div>
+                        )}
+                      </div>
+                      <div>
+                        <div style={{
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                          color: PALETTE.textDim, marginBottom: 2,
+                        }}>更新檔名</div>
+                        {u.fileUrl ? (
+                          <div
+                            onClick={() => downloadFile(u.fileUrl, suggestedName)}
+                            title="點擊以更新檔名下載"
+                            style={{
+                              fontFamily: "'DotGothic16', monospace", fontSize: 13,
+                              color: PALETTE.green, cursor: 'pointer',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              textDecoration: 'underline',
+                            }}>{suggestedName}</div>
+                        ) : (
+                          <div style={{
+                            fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.cyan,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{suggestedName}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 第三欄：修改 + 刪除按鈕 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+                      {onEditUpload && (
+                        <div
+                          onClick={() => isEditing ? setEditingId(null) : startEdit(u)}
+                          style={{
+                            fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                            color: PALETTE.purple, cursor: 'pointer',
+                            border: `2px solid ${PALETTE.purple}`,
+                            background: isEditing ? PALETTE.purple + '33' : 'transparent',
+                            padding: '6px 10px', whiteSpace: 'nowrap', textAlign: 'center',
+                          }}
+                        >✏ 修改</div>
+                      )}
+                      {onDeleteUpload && (
+                        <div
+                          onClick={() => {
+                            if (!confirm('確定要刪除這筆資料嗎？')) return;
+                            onDeleteUpload(u.id);
+                          }}
+                          style={{
+                            fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                            color: PALETTE.red, cursor: 'pointer',
+                            border: `2px solid ${PALETTE.red}`,
+                            padding: '6px 10px', whiteSpace: 'nowrap', textAlign: 'center',
+                          }}
+                        >✕ 刪除</div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* 第二欄：原始檔名 / 更新檔名 */}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ marginBottom: 6 }}>
+                  {/* 修改佐證類型 inline panel */}
+                  {isEditing && (
+                    <div style={{
+                      background: PALETTE.bg, padding: '12px 14px',
+                      border: `2px solid ${PALETTE.purple}`, borderTop: 'none',
+                    }}>
                       <div style={{
-                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                        color: PALETTE.textDim, marginBottom: 2,
-                      }}>原始檔名</div>
-                      <div style={{
-                        fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.text,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{u.fileName}</div>
+                        fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                        color: PALETTE.purple, marginBottom: 10,
+                      }}>✏ 修改佐證類型（可複選）</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                        {EVIDENCE_TYPES.map(t => {
+                          const active = editTypeIds.includes(t.id);
+                          return (
+                            <div key={t.id} onClick={() => toggleEditType(t.id)} style={{
+                              padding: '5px 10px', cursor: 'pointer', borderRadius: 3,
+                              background: active ? PALETTE.gold : PALETTE.panel,
+                              color: active ? '#000' : PALETTE.text,
+                              border: `2px solid ${active ? PALETTE.gold : PALETTE.border}`,
+                              fontFamily: "'DotGothic16', monospace", fontSize: 12,
+                              display: 'flex', alignItems: 'center', gap: 5,
+                            }}>
+                              {active && <span style={{ fontSize: 10 }}>✓</span>}
+                              {t.icon} {t.name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setEditingId(null)} style={{
+                          background: 'transparent', border: `1px solid ${PALETTE.line}`,
+                          color: PALETTE.textDim, borderRadius: 3, padding: '5px 12px',
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 8, cursor: 'pointer',
+                        }}>✕ 取消</button>
+                        <button onClick={saveEdit} disabled={editTypeIds.length === 0} style={{
+                          background: editTypeIds.length > 0 ? PALETTE.purple : '#555',
+                          border: 'none', color: '#fff', borderRadius: 3, padding: '5px 12px',
+                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                          cursor: editTypeIds.length > 0 ? 'pointer' : 'default',
+                        }}>✓ 儲存</button>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{
-                        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                        color: PALETTE.textDim, marginBottom: 2,
-                      }}>更新檔名</div>
-                      <div style={{
-                        fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.cyan,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{suggestedName}</div>
-                    </div>
-                  </div>
-
-                  {/* 第三欄：檢視 + 刪除按鈕 */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
-                    {u.fileUrl ? (
-                      <div
-                        onClick={() => {
-                          fetch(u.fileUrl)
-                            .then(r => {
-                              if (!r.ok) throw new Error('下載失敗');
-                              return r.blob();
-                            })
-                            .then(blob => {
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = suggestedName;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            })
-                            .catch(() => alert('❌ 檔案下載失敗，請稍後再試或確認網路連線'));
-                        }}
-                        style={{
-                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                          color: PALETTE.green, cursor: 'pointer',
-                          border: `2px solid ${PALETTE.green}`,
-                          padding: '6px 10px', whiteSpace: 'nowrap', textAlign: 'center',
-                        }}
-                      >↓ 檢視</div>
-                    ) : (
-                      <div
-                        title="此筆資料未上傳實際檔案，無法下載"
-                        style={{
-                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                          color: PALETTE.textDim, whiteSpace: 'nowrap', textAlign: 'center',
-                          border: `2px solid ${PALETTE.line}`,
-                          padding: '6px 10px', cursor: 'default',
-                        }}>無原檔</div>
-                    )}
-                    {onDeleteUpload && (
-                      <div
-                        onClick={() => {
-                          if (!confirm('確定要刪除這筆資料嗎？')) return;
-                          onDeleteUpload(u.id);
-                        }}
-                        style={{
-                          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                          color: PALETTE.red, cursor: 'pointer',
-                          border: `2px solid ${PALETTE.red}`,
-                          padding: '6px 10px', whiteSpace: 'nowrap', textAlign: 'center',
-                        }}
-                      >✕ 刪除</div>
-                    )}
-                  </div>
+                  )}
                 </div>
               );
             })}
