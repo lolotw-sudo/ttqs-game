@@ -481,4 +481,4 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
   );
 }
 
-Object.assign(window, { ScreenAchievements, IndicatorCard, IndicatorDetail });
+Object.assign(window, { ScreenAchievements, IndicatorCard, IndicatorDetail, FilterPill });
