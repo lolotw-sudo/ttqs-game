@@ -1,7 +1,7 @@
 // 主地圖：五大關卡卡牌式儀表板 + 玩家狀態
 // 依賴：React, PALETTE, PixelBox, PixelButton, StatBar, IndicatorChip, STAGES, INDICATORS, BADGES
 
-function ScreenMap({ state, uploads, team, playerName, customTypes, onOpenStage, onOpenUpload, onOpenAchievements, onOpenProfile, onEditUpload, onBack }) {
+function ScreenMap({ state, uploads, team, playerName, customTypes, onOpenStage, onOpenUpload, onOpenAchievements, onOpenProfile, onEditUpload, onDeleteUpload, onBack }) {
   return (
     <div style={{ padding: '24px 28px 60px', maxWidth: 1280, margin: '0 auto' }}>
       {/* ========= 返回按鈕 ========= */}
@@ -19,41 +19,65 @@ function ScreenMap({ state, uploads, team, playerName, customTypes, onOpenStage,
       {/* ========= 上傳卡片 ========= */}
       <UploadCard state={state} onOpenUpload={onOpenUpload} />
 
-      {/* ========= 任務路徑（PDDRO）========= */}
-      <div style={{ marginBottom: 14 }}>
-        <h2 style={titleStyle}>▼ 任務路徑 QUEST MAP</h2>
-        <div style={subtitleStyle}>完成五大流程，收集 19 項 TTQS 指標</div>
-      </div>
+      {/* ========= 成就地圖（inline）========= */}
+      <InlineAchievements state={state} uploads={uploads}
+        onOpenUpload={onOpenUpload} onDeleteUpload={onDeleteUpload} onEditUpload={onEditUpload} />
 
-      {/* 路徑連線 + 關卡卡 */}
-      <div style={{ position: 'relative' }}>
-        {/* 虛線路徑 */}
-        <div style={{
-          position: 'absolute', top: '50%', left: 0, right: 0, height: 6,
-          backgroundImage: `repeating-linear-gradient(90deg, ${PALETTE.gold} 0 8px, transparent 8px 16px)`,
-          transform: 'translateY(-50%)', zIndex: 0,
-          opacity: 0.5,
-        }} />
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 14,
-          position: 'relative', zIndex: 1,
-        }}>
-          {STAGES.map((stage, idx) => (
-            <StageCard key={stage.id} stage={stage} idx={idx}
-              progress={state.stageProgress[stage.id]}
-              onClick={() => onOpenStage(stage.id)} />
-          ))}
-        </div>
-      </div>
-
-      {/* ========= 關鍵資料檔案庫 + 徽章 ========= */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, marginTop: 40 }}>
+      {/* ========= 關鍵資料檔案庫 ========= */}
+      <div style={{ marginTop: 40 }}>
         <RecentActivity uploads={uploads} customTypes={customTypes || []} onEditUpload={onEditUpload} />
-        <BadgeShelf state={state} onSeeAll={onOpenAchievements} />
       </div>
+    </div>
+  );
+}
+
+// ========== 成就地圖（嵌入版）==========
+function InlineAchievements({ state, uploads, onOpenUpload, onDeleteUpload, onEditUpload }) {
+  const [stageFilter, setStageFilter] = React.useState('ALL');
+  const [selected, setSelected] = React.useState(null);
+
+  const visibleIndicators = stageFilter === 'ALL'
+    ? INDICATORS
+    : INDICATORS.filter(i => i.stage === stageFilter);
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+        <h2 style={titleStyle}>▼ 成就地圖</h2>
+        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 10, color: PALETTE.gold }}>
+          {state.doneCount}/19 完成 · {state.partialCount} 部分
+        </span>
+      </div>
+
+      {/* 階段篩選 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <FilterPill active={stageFilter === 'ALL'} color={PALETTE.text} onClick={() => setStageFilter('ALL')}>
+          全部 19
+        </FilterPill>
+        {STAGES.map(s => (
+          <FilterPill key={s.id} active={stageFilter === s.id} color={s.color}
+            onClick={() => setStageFilter(s.id)}>
+            {s.emoji} {s.name} ({state.stageProgress[s.id].done}/{state.stageProgress[s.id].total})
+          </FilterPill>
+        ))}
+      </div>
+
+      {/* 指標卡格 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+        {visibleIndicators.map(ind => (
+          <IndicatorCard key={ind.id} ind={ind} state={state} uploads={uploads}
+            onClick={() => setSelected(ind)} />
+        ))}
+      </div>
+
+      {/* 詳情 modal */}
+      {selected && (
+        <IndicatorDetail indicator={selected} state={state} uploads={uploads}
+          onClose={() => setSelected(null)}
+          onOpenUpload={onOpenUpload}
+          onDeleteUpload={onDeleteUpload}
+          onEditUpload={onEditUpload} />
+      )}
     </div>
   );
 }
