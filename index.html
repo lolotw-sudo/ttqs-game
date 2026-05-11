@@ -163,6 +163,7 @@
       const [tweaks, setTweaks] = useState(TWEAKS_DEFAULT);
       const [editMode, setEditMode] = useState(false);
       const [customTypes, setCustomTypes] = useState([]);
+      const [uploadPreTypeIds, setUploadPreTypeIds] = useState([]);
 
       const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
       const uploads   = currentPlayer?.uploads   || [];
@@ -416,7 +417,7 @@
                 state={state} uploads={uploads} team={team} playerName={playerName}
                 customTypes={customTypes}
                 onOpenStage={(id) => { setFocusStage(id); setScreen('achievements'); }}
-                onOpenUpload={() => setScreen('upload')}
+                onOpenUpload={(typeIds) => { setUploadPreTypeIds(typeIds || []); setScreen('upload'); }}
                 onOpenAchievements={() => { setFocusStage(null); setScreen('achievements'); }}
                 onOpenProfile={() => setScreen('profile')}
                 onEditUpload={handleEditUpload}
@@ -430,6 +431,7 @@
                 playerName={playerName}
                 customTypes={customTypes}
                 isCustomTypeUsed={isCustomTypeUsed}
+                preTypeIds={uploadPreTypeIds}
                 onCancel={() => setScreen('map')}
                 onConfirm={handleUploadConfirm}
               />
@@ -454,7 +456,7 @@
                 state={state} uploads={uploads} focusStage={focusStage}
                 player={currentPlayer}
                 onClose={() => setScreen('map')}
-                onOpenUpload={() => setScreen('upload')}
+                onOpenUpload={(typeIds) => { setUploadPreTypeIds(typeIds || []); setScreen('upload'); }}
                 onDeleteUpload={handleDeleteUpload}
                 onEditUpload={handleEditUpload}
               />

@@ -227,7 +227,7 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
 
         <div style={{
           background: PALETTE.panel, border: `2px solid ${PALETTE.border}`,
-          padding: 14, marginBottom: 16,
+          padding: 14, marginBottom: 12,
         }}>
           <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: PALETTE.gold, marginBottom: 6 }}>
             ▼ 一句話說明
@@ -236,6 +236,17 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
             {indicator.plain}
           </div>
         </div>
+
+        {onOpenUpload && (
+          <div style={{ marginBottom: 16, textAlign: 'center' }}>
+            <PixelButton
+              size="md" color={PALETTE.gold} textColor="#000"
+              onClick={() => { onClose(); onOpenUpload(); }}
+            >
+              ⚔ 上傳這個指標的佐證資料
+            </PixelButton>
+          </div>
+        )}
 
         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 10, color: PALETTE.text, marginBottom: 8 }}>
           ▼ 已蒐集的資料（{relevantUploads.length}）
@@ -423,10 +434,17 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           {suggestedTypes.map(t => (
-            <div key={t.id} style={{
-              background: PALETTE.panel, border: `2px solid ${PALETTE.border}`,
-              padding: '10px 12px',
-            }}>
+            <div key={t.id}
+              onClick={onOpenUpload ? () => { onClose(); onOpenUpload([t.id]); } : undefined}
+              style={{
+                background: PALETTE.panel, border: `2px solid ${PALETTE.border}`,
+                padding: '10px 12px',
+                cursor: onOpenUpload ? 'pointer' : 'default',
+                transition: 'border-color 80ms, background 80ms',
+              }}
+              onMouseEnter={e => { if (onOpenUpload) { e.currentTarget.style.borderColor = PALETTE.gold; e.currentTarget.style.background = PALETTE.panelLt; }}}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = PALETTE.border; e.currentTarget.style.background = PALETTE.panel; }}
+            >
               {/* 第一行：名稱 + 單位 + 難度 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: t.desc ? 6 : 0 }}>
                 <span style={{
@@ -466,16 +484,6 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
           ))}
         </div>
 
-        {onOpenUpload && (
-          <div style={{ marginTop: 20, textAlign: 'center' }}>
-            <PixelButton
-              size="md" color={PALETTE.gold} textColor="#000"
-              onClick={() => { onClose(); onOpenUpload(); }}
-            >
-              ⚔ 上傳這個指標的佐證資料
-            </PixelButton>
-          </div>
-        )}
       </div>
     </div>
   );
