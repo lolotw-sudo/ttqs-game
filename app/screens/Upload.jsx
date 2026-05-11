@@ -34,7 +34,7 @@ function computeMultiDelta(existingUploads, drafts) {
   };
 }
 
-function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes = [], isCustomTypeUsed, onCancel, onConfirm }) {
+function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes = [], isCustomTypeUsed, preTypeIds = [], onCancel, onConfirm }) {
   const [step, setStep] = useState(1);
 
   const _def = (TEAM_DEFAULT_COURSES || {})[team];
@@ -156,6 +156,7 @@ function ScreenUpload({ state, uploads, playerId, team, playerName, customTypes 
             customTypes={customTypes}
             isCustomTypeUsed={isCustomTypeUsed}
             playerName={playerName}
+            preTypeIds={preTypeIds}
             onNext={() => setStep(3)}
             onBack={() => setStep(1)}
           />
@@ -378,8 +379,12 @@ function _Legacy_StepPickCourse({ courseId, onPick }) {
 // ========== Step 2: 拖拉檔案 + 多選類型 ==========
 const MAX_FILE_MB = 50;
 
-function StepPickFile({ fileObjects, setFileObjects, typeIds, setTypeIds, dragOver, setDragOver, customTypes, isCustomTypeUsed, playerName, onNext, onBack }) {
+function StepPickFile({ fileObjects, setFileObjects, typeIds, setTypeIds, dragOver, setDragOver, customTypes, isCustomTypeUsed, playerName, preTypeIds = [], onNext, onBack }) {
   const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (preTypeIds.length > 0) setTypeIds(preTypeIds);
+  }, []);
   const [hoveredTypeId, setHoveredTypeId] = React.useState(null);
   const [fileSizeErrors, setFileSizeErrors] = React.useState([]);
   const [showCustomForm, setShowCustomForm] = React.useState(false);
@@ -458,6 +463,14 @@ function StepPickFile({ fileObjects, setFileObjects, typeIds, setTypeIds, dragOv
   return (
     <div>
       <StepHeader num={2} title="拖拉檔案＋勾選資料用途" subtitle="一個檔案可能同時有多個用途、對應多個指標 — 全部勾起來！（可複選）" />
+
+      {/* 按鈕列（置於說明下方，方便低解析度螢幕使用者） */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+        <PixelButton color={PALETTE.panelLt} textColor={PALETTE.text} onClick={onBack}>◀ 上一步</PixelButton>
+        <PixelButton color={canNext ? PALETTE.gold : '#555'} onClick={canNext ? onNext : null} disabled={!canNext}>
+          下一步 ▶
+        </PixelButton>
+      </div>
 
       {/* Dropzone */}
       <input
