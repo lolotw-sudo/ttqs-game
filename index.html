@@ -103,6 +103,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
   <script>
     firebase.initializeApp({
       apiKey: "AIzaSyCBZhX-WRpIic4LMEe2XFoG0xb0rPZAI9o",
@@ -112,7 +113,9 @@
       storageBucket: "ttqs-game.firebasestorage.app",
       messagingSenderId: "244519103751",
       appId: "1:244519103751:web:c19540f6ae59213b1569a2",
+      measurementId: "G-RYXS7DT0LN",
     });
+    firebase.analytics();
     window.__playersRef = firebase.database().ref('players');
     window.__customTypesRef = firebase.database().ref('customTypes');
     window.__customTypes = {};
