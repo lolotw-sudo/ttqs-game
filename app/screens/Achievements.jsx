@@ -1,8 +1,71 @@
+// ── 共用：下載單一指標的檔案為 ZIP（filterTypeId = null 代表全部）──
+async function downloadIndicatorZip(ind, uploads, teamLabel, onStart, onEnd, filterTypeId = null) {
+  const cleanStr = s => (s || '').replace(/[\/\\:*?"<>|\s]/g, '_').replace(/_+/g, '_');
+  const getExt   = f => { const p = (f || '').split('.'); return p.length > 1 ? p.pop() : 'pdf'; };
+
+  const filterType = filterTypeId ? resolveType(filterTypeId) : null;
+
+  const relevant = uploads.filter(u => {
+    if (!u.fileUrl) return false;
+    const tids = getUploadTypeIds(u);
+    const matchesInd = tids.some(tid => { const t = resolveType(tid); return t && t.maps.includes(ind.id); });
+    if (!matchesInd) return false;
+    if (filterTypeId) return tids.some(tid => resolveType(tid)?.id === filterTypeId);
+    return true;
+  });
+  if (relevant.length === 0) {
+    alert(filterType
+      ? `❌ 「${filterType.name}」沒有可下載的檔案\n\n上傳時請選取實際檔案才能使用下載功能。`
+      : '❌ 此指標沒有可下載的檔案\n\n上傳時請選取實際檔案才能使用下載功能。');
+    return;
+  }
+
+  onStart?.();
+  let failCount = 0;
+  const nameCount = {};
+  try {
+    const zip = new JSZip();
+    // 每個 upload × 對應的 type 數量，各產生一個 ZIP 檔案
+    const tasks = relevant.map(u => {
+      const tids = getUploadTypeIds(u);
+      const ts   = tids.map(tid => resolveType(tid)).filter(t => t && t.maps.includes(ind.id));
+      const typesToUse = filterType ? [filterType] : (ts.length > 0 ? ts : [{ name: '佐證' }]);
+      const ext  = getExt(u.fileName);
+      const names = typesToUse.map(type => {
+        const base = `指標${ind.id}_${cleanStr(type.name)}_${cleanStr(teamLabel || '')}_${cleanStr(u.courseName || '')}`;
+        nameCount[base] = (nameCount[base] || 0) + 1;
+        return `${base}_${String(nameCount[base]).padStart(3, '0')}.${ext}`;
+      });
+      return fetch(u.fileUrl)
+        .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
+        .then(blob => { names.forEach(name => zip.file(name, blob)); })
+        .catch(() => { failCount++; });
+    });
+    await Promise.all(tasks);
+    if (failCount === tasks.length) { alert('❌ 所有檔案下載失敗，請確認網路連線。'); return; }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const zipName = filterType
+      ? `TTQS_指標${ind.id}_${cleanStr(filterType.name)}.zip`
+      : `TTQS_指標${ind.id}_${cleanStr(ind.name)}.zip`;
+    a.href = url; a.download = zipName; a.click();
+    URL.revokeObjectURL(url);
+    if (failCount > 0) alert(`⚠️ 已下載 ZIP，但有 ${failCount} 個檔案無法取得，已略過。`);
+  } catch { alert('❌ 壓縮失敗，請稍後再試。'); }
+  finally { onEnd?.(); }
+}
+
 // ── 指標卡片（可重複使用）──
 function IndicatorCard({ ind, state, uploads = [], onClick }) {
   const status = state.indicatorStatus[ind.id];
   const count  = state.perInd[ind.id].count;
   const stage  = STAGES.find(s => s.id === ind.stage);
+  // 下載 loading 狀態：key = typeId 或 'all'
+  const [dlMap, setDlMap] = React.useState({});
+  const isDl = key => !!dlMap[key];
+  const startDl = key => setDlMap(p => ({...p, [key]: true}));
+  const endDl   = key => setDlMap(p => ({...p, [key]: false}));
 
   const suggestedTypes = EVIDENCE_TYPES.filter(t => t.maps.includes(ind.id));
 
@@ -12,11 +75,24 @@ function IndicatorCard({ ind, state, uploads = [], onClick }) {
     const tids = getUploadTypeIds(u);
     tids.forEach(tid => {
       const t = resolveType(tid);
-      if (t && t.maps.includes(ind.id)) {
-        typeCountMap[t.id] = (typeCountMap[t.id] || 0) + 1;
-      }
+      if (t && t.maps.includes(ind.id)) typeCountMap[t.id] = (typeCountMap[t.id] || 0) + 1;
     });
   });
+
+  // 每種類型可下載的檔案數（有 fileUrl）
+  const typeDlCount = {};
+  suggestedTypes.forEach(t => {
+    typeDlCount[t.id] = uploads.filter(u => {
+      if (!u.fileUrl) return false;
+      return getUploadTypeIds(u).some(tid => resolveType(tid)?.id === t.id);
+    }).length;
+  });
+
+  // 全指標可下載數
+  const dlCount = uploads.filter(u => {
+    if (!u.fileUrl) return false;
+    return getUploadTypeIds(u).some(tid => { const t = resolveType(tid); return t && t.maps.includes(ind.id); });
+  }).length;
 
   return (
     <PixelBox hover onClick={onClick}
@@ -39,32 +115,46 @@ function IndicatorCard({ ind, state, uploads = [], onClick }) {
         </div>
       </div>
 
-      {/* 佐證類型清單 */}
+      {/* 佐證類型清單：點擊數字 → 直接下載該類型 ZIP */}
       <div style={{
         marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${PALETTE.line}`,
         display: 'flex', flexDirection: 'column', gap: 5,
       }}>
         {suggestedTypes.map(t => {
-          const cnt = typeCountMap[t.id] || 0;
-          const hasUploads = cnt > 0;
+          const cnt   = typeCountMap[t.id] || 0;
+          const dlCnt = typeDlCount[t.id] || 0;
+          const canDl = dlCnt > 0;
+          const loading = isDl(t.id);
           return (
-            <div key={t.id} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-              padding: '4px 8px',
-              background: hasUploads ? PALETTE.green + '18' : PALETTE.panelLt,
-              border: `1px solid ${hasUploads ? PALETTE.green + '55' : PALETTE.line}`,
-            }}>
+            <div key={t.id}
+              onClick={canDl && !loading ? (e) => {
+                e.stopPropagation();
+                downloadIndicatorZip(ind, uploads, '', () => startDl(t.id), () => endDl(t.id), t.id);
+              } : undefined}
+              title={canDl ? `↓ 下載「${t.name}」的 ${dlCnt} 個檔案` : undefined}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                padding: '4px 8px',
+                background: cnt > 0 ? PALETTE.green + '18' : PALETTE.panelLt,
+                border: `1px solid ${cnt > 0 ? PALETTE.green + '55' : PALETTE.line}`,
+                cursor: canDl && !loading ? 'pointer' : 'default',
+                transition: 'background 80ms',
+              }}
+              onMouseEnter={e => { if (canDl && !loading) e.currentTarget.style.background = PALETTE.green + '35'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = cnt > 0 ? PALETTE.green + '18' : PALETTE.panelLt; }}
+            >
               <span style={{
                 fontFamily: "'DotGothic16', monospace", fontSize: 11,
-                color: hasUploads ? PALETTE.green : PALETTE.textDim,
+                color: cnt > 0 ? PALETTE.green : PALETTE.textDim,
                 flex: 1, minWidth: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{t.name}</span>
               <span style={{
                 fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                color: hasUploads ? PALETTE.green : PALETTE.textDim,
+                color: loading ? PALETTE.gold : cnt > 0 ? PALETTE.green : PALETTE.textDim,
                 whiteSpace: 'nowrap', flexShrink: 0,
-              }}>{cnt} 筆</span>
+                textDecoration: canDl && !loading ? 'underline' : 'none',
+              }}>{loading ? '↓…' : `${cnt} 筆`}</span>
             </div>
           );
         })}
@@ -125,7 +215,8 @@ function ScreenAchievements({ state, uploads, onClose, onOpenUpload, onDeleteUpl
       {/* 指標格 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
         {visibleIndicators.map(ind => (
-          <IndicatorCard key={ind.id} ind={ind} state={state} uploads={uploads} onClick={() => setSelected(ind)} />
+          <IndicatorCard key={ind.id} ind={ind} state={state} uploads={uploads}
+            onClick={() => setSelected(ind)} />
         ))}
       </div>
 
@@ -158,14 +249,19 @@ function FilterPill({ children, active, color, onClick }) {
 function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onDeleteUpload, onEditUpload, playerMap = null, teamData = null }) {
   const stage = STAGES.find(s => s.id === indicator.stage);
   const status = state.indicatorStatus[indicator.id];
+
   const relevantUploads = uploads.filter(u => {
     const tids = getUploadTypeIds(u);
-    return tids.some(tid => {
-      const t = resolveType(tid);
-      return t && t.maps.includes(indicator.id);
-    });
+    return tids.some(tid => { const t = resolveType(tid); return t && t.maps.includes(indicator.id); });
   });
   const suggestedTypes = EVIDENCE_TYPES.filter(t => t.maps.includes(indicator.id));
+  // ZIP 實際檔案數 = 每個 upload × 它匹配的 type 數量
+  const dlCount = relevantUploads.filter(u => u.fileUrl).reduce((sum, u) => {
+    const tids = getUploadTypeIds(u);
+    const matchCount = tids.filter(tid => { const t = resolveType(tid); return t && t.maps.includes(indicator.id); }).length;
+    return sum + (matchCount || 1);
+  }, 0);
+  const [dlLoading, setDlLoading] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
   const [editTypeIds, setEditTypeIds] = useState([]);
@@ -237,16 +333,24 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
           </div>
         </div>
 
-        {onOpenUpload && (
-          <div style={{ marginBottom: 16, textAlign: 'center' }}>
+        <div style={{ marginBottom: 16, display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {onOpenUpload && (
             <PixelButton
               size="md" color={PALETTE.gold} textColor="#000"
               onClick={() => { onClose(); onOpenUpload(); }}
             >
               ⚔ 上傳這個指標的佐證資料
             </PixelButton>
-          </div>
-        )}
+          )}
+          {dlCount > 0 && (
+            <PixelButton
+              size="md" color={dlLoading ? PALETTE.panelLt : PALETTE.cyan} textColor={dlLoading ? PALETTE.textDim : '#000'}
+              onClick={() => !dlLoading && downloadIndicatorZip(indicator, uploads, teamData?.name || '', () => setDlLoading(true), () => setDlLoading(false))}
+            >
+              {dlLoading ? '壓縮中…' : `↓ 下載此指標 ZIP (${dlCount})`}
+            </PixelButton>
+          )}
+        </div>
 
         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 10, color: PALETTE.text, marginBottom: 8 }}>
           ▼ 已蒐集的資料（{relevantUploads.length}）
@@ -257,13 +361,16 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
               const tids = getUploadTypeIds(u);
               const ts = tids.map(tid => resolveType(tid)).filter(Boolean);
               const matching = ts.filter(t => t.maps.includes(indicator.id));
-              const primaryType = matching.reduce((a, b) => (a.difficulty >= b.difficulty ? a : b), matching[0]);
 
-              // 建議檔名
+              // 每個 matching type 各產生一個建議檔名
               const cleanStr = s => (s || '').replace(/[\/\\:*?"<>|\s]/g, '_').replace(/_+/g, '_');
               const getExt  = f => { const p = (f || '').split('.'); return p.length > 1 ? p.pop() : 'pdf'; };
               const tName   = cleanStr(teamData?.name || '');
-              const suggestedName = `指標${indicator.id}_${cleanStr(primaryType.name)}_${tName}_${cleanStr(u.courseName)}.${getExt(u.fileName)}`;
+              const ext     = getExt(u.fileName);
+              const suggestedNames = matching.map(m => ({
+                type: m,
+                name: `指標${indicator.id}_${cleanStr(m.name)}_${tName}_${cleanStr(u.courseName)}.${ext}`,
+              }));
 
               const isEditing = editingId === u.id;
               return (
@@ -321,24 +428,34 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
                       <div>
                         <div style={{
                           fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                          color: PALETTE.textDim, marginBottom: 2,
+                          color: PALETTE.textDim, marginBottom: 4,
                         }}>更新檔名</div>
-                        {u.fileUrl ? (
-                          <div
-                            onClick={() => downloadFile(u.fileUrl, suggestedName)}
-                            title="點擊以更新檔名下載"
-                            style={{
-                              fontFamily: "'DotGothic16', monospace", fontSize: 13,
-                              color: PALETTE.green, cursor: 'pointer',
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              textDecoration: 'underline',
-                            }}>{suggestedName}</div>
-                        ) : (
-                          <div style={{
-                            fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.cyan,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>{suggestedName}</div>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {suggestedNames.map(({ type: m, name: sName }) => (
+                            <div key={m.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                              <span style={{
+                                fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                                color: PALETTE.textDim, whiteSpace: 'nowrap', flexShrink: 0,
+                              }}>({matching.indexOf(m) + 1})</span>
+                              {u.fileUrl ? (
+                                <div
+                                  onClick={() => downloadFile(u.fileUrl, sName)}
+                                  title={`點擊以「${m.name}」檔名下載`}
+                                  style={{
+                                    fontFamily: "'DotGothic16', monospace", fontSize: 13,
+                                    color: PALETTE.green, cursor: 'pointer',
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    textDecoration: 'underline',
+                                  }}>{sName}</div>
+                              ) : (
+                                <div style={{
+                                  fontFamily: "'DotGothic16', monospace", fontSize: 13, color: PALETTE.cyan,
+                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                }}>{sName}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 

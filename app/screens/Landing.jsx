@@ -511,7 +511,8 @@ function TeamAchievementModal({ team, players, onClose }) {
         {/* 指標格 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
           {INDICATORS.map(ind => (
-            <IndicatorCard key={ind.id} ind={ind} state={state} uploads={allUploads} onClick={() => setSelected(ind)} />
+            <IndicatorCard key={ind.id} ind={ind} state={state} uploads={allUploads}
+              onClick={() => setSelected(ind)} />
           ))}
         </div>
 
