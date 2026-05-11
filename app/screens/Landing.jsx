@@ -196,14 +196,21 @@ function LandingPlayerCard({ player, onSelect, onDelete }) {
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{
                 fontFamily: "'Press Start 2P', monospace", fontSize: 11,
-                color: PALETTE.text, marginBottom: 6,
+                color: PALETTE.text, marginBottom: 8,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{player.name}</div>
-              <span style={{
-                background: PALETTE.gold, color: '#000',
-                fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                padding: '2px 6px', border: `2px solid ${PALETTE.border}`,
-              }}>LV.{playerState.level}</span>
+              {/* LV + 積分並排 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  background: PALETTE.gold, color: '#000',
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                  padding: '2px 6px', border: `2px solid ${PALETTE.border}`,
+                }}>LV.{playerState.level}</span>
+                <span style={{
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+                  color: PALETTE.gold,
+                }}>◎ {playerState.points}</span>
+              </div>
             </div>
           </div>
 
@@ -213,36 +220,13 @@ function LandingPlayerCard({ player, onSelect, onDelete }) {
             color={PALETTE.gold} label="EXP" height={10} showText={false}
           />
 
-          {/* 指標 + 金幣 */}
+          {/* 指標完成數 */}
           <div style={{
-            display: 'flex', justifyContent: 'space-between',
             fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-            color: PALETTE.textDim, marginTop: 10, marginBottom: 12,
+            color: playerState.doneCount > 0 ? PALETTE.green : PALETTE.textDim,
+            marginTop: 10, marginBottom: 12,
           }}>
-            <span style={{ color: playerState.doneCount > 0 ? PALETTE.green : PALETTE.textDim }}>
-              ✔ {playerState.doneCount}/19
-            </span>
-            <span style={{ color: PALETTE.gold }}>◎ {playerState.points}</span>
-          </div>
-
-          {/* 5 關卡進度迷你條 */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
-            {STAGES.map(s => {
-              const prog = playerState.stageProgress[s.id];
-              return (
-                <div key={s.id} style={{ flex: 1 }} title={`${s.name} ${prog.done}/${prog.total}`}>
-                  <div style={{
-                    height: 6, background: '#000',
-                    border: `2px solid ${PALETTE.border}`, padding: 1,
-                  }}>
-                    <div style={{
-                      width: `${prog.pct}%`, height: '100%',
-                      background: prog.pct === 100 ? PALETTE.green : s.color,
-                    }} />
-                  </div>
-                </div>
-              );
-            })}
+            ✔ {playerState.doneCount}/19
           </div>
         </div>
 

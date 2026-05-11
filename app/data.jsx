@@ -162,7 +162,7 @@ const EVIDENCE_TYPES = [
     desc: '主管指派培訓師參加訓練課程之簽核或通知紀錄',
   },
   {
-    id: 'trainer_reflection', name: '培訓師受訓心得',       icon: '✍️', difficulty: 2, maps: [6],
+    id: 'trainer_reflection', name: '培訓師受訓心得',       icon: '✍️', difficulty: 4, maps: [6],
     unit: '學系',
     desc: '培訓師參加課程或研習後撰寫之受訓心得報告',
   },
@@ -207,7 +207,7 @@ const EVIDENCE_TYPES = [
     desc: '說明遭遇問題、改善方式與應變作為，類似月報、週報',
   },
   {
-    id: 'improvement',       name: '精進作為',         icon: '🔧', difficulty: 3, maps: [8],
+    id: 'improvement',       name: '精進作為',         icon: '🔧', difficulty: 5, maps: [8],
     unit: '學系',
     desc: '彙整學員回饋，並在下期課程中針對問題提出具體改善',
   },
@@ -222,7 +222,7 @@ const EVIDENCE_TYPES = [
     desc: '透過 eDM、eLearning、email 或任意形式通知學員的課前通知',
   },
   {
-    id: 'classroom_log',        name: '教室日誌（異常）',     icon: '🚨', difficulty: 3, maps: [9],
+    id: 'classroom_log',        name: '教室日誌（異常）',     icon: '🚨', difficulty: 5, maps: [9],
     unit: '學系',
     desc: 'TIS 系統截圖，須選取有異常的紀錄（如學員請假、未報到），最好附有通知主管的紀錄',
   },
@@ -259,7 +259,7 @@ const EVIDENCE_TYPES = [
     desc: '師資管理、教材管理、採購制度及個資保護說明',
   },
   {
-    id: 'teacher_change',     name: '更換教師記錄',       icon: '🔄', difficulty: 2, maps: [10],
+    id: 'teacher_change',     name: '更換教師記錄',       icon: '🔄', difficulty: 5, maps: [10],
     unit: '學系',
     desc: '課程進行中更換授課教師之申請或通知紀錄',
   },
@@ -274,7 +274,7 @@ const EVIDENCE_TYPES = [
     desc: '數位教材建置、維護與管理之相關佐證文件',
   },
   {
-    id: 'material_purchase',  name: '教材採購流程簽呈', icon: '🖊️', difficulty: 1, maps: [10],
+    id: 'material_purchase',  name: '教材採購流程簽呈', icon: '🖊️', difficulty: 5, maps: [10],
     unit: '學系',
     desc: '採購簽呈會有相對應利益關係人的簽核',
   },
@@ -304,7 +304,7 @@ const EVIDENCE_TYPES = [
     desc: '紙本／數位教材審核及採購流程；依訓練目標選擇紙本、數位或混成學習教材；學員可於教學網／email／Teams 取得講義',
   },
   {
-    id: 'teacher_eval', name: '教師評鑑紀錄',       icon: '⭐', difficulty: 1, maps: [12],
+    id: 'teacher_eval', name: '教師評鑑紀錄',       icon: '⭐', difficulty: 5, maps: [12],
     unit: '學系',
     desc: '依據各課程參考教師學經歷、職務、專長與教學滿意度遴選',
   },
@@ -331,7 +331,7 @@ const EVIDENCE_TYPES = [
     desc: '訓練完訓名單、出勤紀錄與系統查詢機制',
   },
   {
-    id: 'incident',     name: '異常紀錄 / 緊急通知',icon: '⚠️', difficulty: 3, maps: [16],
+    id: 'incident',     name: '異常紀錄 / 緊急通知',icon: '⚠️', difficulty: 5, maps: [16],
     unit: '學系＋培發',
     desc: '用以說明學院對於臨時的變動，可以有告知學員並應變的能力（如發送 EDM）；執行階段品質檢核與異常紀錄、緊急因應措施',
   },
