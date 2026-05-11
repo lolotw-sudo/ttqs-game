@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TTQS 專案說明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  @font-face{
+    font-family:"TW Road";
+    src:url("fonts/twroadfont-1.0.otf") format("opentype");
+    font-weight:400 900;
+    font-display:swap;
+  }
+  :root{
+    --bg:#070710;
+    --bg-2:#0d0d1a;
+    --ink:#f3f1ea;
+    --ink-dim:#a8a6b8;
+    --ink-mute:#6e6c80;
+    --line:rgba(243,241,234,.10);
+    --line-2:rgba(243,241,234,.18);
+    --accent:#d6ff3d;      /* electric lime */
+    --accent-2:#7ad0ff;    /* glacier */
+    --accent-3:#ff7ad0;    /* magenta */
+    --hue-warm:#f6c89f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;font-weight:400;line-height:1.7;}
+  body{overflow-x:hidden;}
+  ::selection{background:var(--accent);color:#0a0a14;}
+
+  /* ===== Global FX ===== */
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:200;opacity:.07;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC45JyBudW1PY3RhdmVzPScyJy8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgZmlsdGVyPSd1cmwoJTIzbiknIG9wYWNpdHk9JzAuNTUnLz48L3N2Zz4=");}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:150;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.55) 100%);}
+
+  /* ===== Progress bar ===== */
+  .progress{position:fixed;top:0;left:0;height:2px;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));z-index:300;transition:width .1s linear;box-shadow:0 0 12px var(--accent);}
+
+  /* ===== Top bar ===== */
+  .topbar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:22px 36px;z-index:120;mix-blend-mode:difference;}
+  .topbar .mark{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;color:#fff;text-transform:uppercase;}
+  .topbar .mark .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);margin-right:8px;vertical-align:middle;}
+  .topbar nav{display:flex;gap:28px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;}
+  .topbar nav a{color:#fff;text-decoration:none;opacity:.65;transition:opacity .2s;}
+  .topbar nav a:hover, .topbar nav a.is-active{opacity:1;}
+  .topbar nav a.is-active::before{content:"●";color:var(--accent);margin-right:6px;}
+
+  /* ===== Section base ===== */
+  section{position:relative;min-height:100vh;padding:120px 7vw 100px;display:flex;flex-direction:column;justify-content:center;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.3em;color:var(--accent);text-transform:uppercase;margin-bottom:24px;display:flex;align-items:center;gap:12px;}
+  .eyebrow::before{content:"";width:32px;height:1px;background:var(--accent);display:inline-block;}
+  h1,h2,h3{font-family:"TW Road","Noto Serif TC","Noto Sans TC",serif;font-weight:900;line-height:1.05;letter-spacing:-.01em;}
+  .display,.h2,.h3,.hero h1,.signature,.number-big,.flow-card h4,.stack-row .name,.ai-row .name,.arch-stats .cell .big,.outro .end-stats .big,.marquee .track{font-family:"TW Road","Noto Serif TC","Noto Sans TC",serif !important;}
+  .display{font-size:clamp(56px,9vw,148px);font-weight:900;line-height:.92;letter-spacing:-.025em;}
+  .h2{font-size:clamp(36px,5.4vw,84px);font-weight:900;line-height:1.02;letter-spacing:-.02em;}
+  .h3{font-size:clamp(22px,2.4vw,36px);font-weight:700;line-height:1.2;}
+  .lead{font-size:clamp(17px,1.5vw,22px);color:var(--ink-dim);font-weight:300;line-height:1.7;max-width:62ch;}
+  .body{font-size:16px;color:var(--ink-dim);line-height:1.85;}
+  .body strong{color:var(--ink);font-weight:500;}
+  .mono{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);}
+
+  /* Reveal animation */
+  .reveal{opacity:0;transform:translateY(40px);transition:opacity 1s cubic-bezier(.2,.7,.2,1),transform 1s cubic-bezier(.2,.7,.2,1);}
+  .reveal.in{opacity:1;transform:none;}
+  .reveal.d1{transition-delay:.1s;}
+  .reveal.d2{transition-delay:.2s;}
+  .reveal.d3{transition-delay:.35s;}
+  .reveal.d4{transition-delay:.5s;}
+  .reveal.d5{transition-delay:.65s;}
+
+  /* ============================================================
+     HERO
+  ============================================================ */
+  .hero{padding:0 7vw;overflow:hidden;}
+  .hero .canvas{position:absolute;inset:0;}
+  .hero .grid-bg{position:absolute;inset:0;background-image:
+    linear-gradient(to right,var(--line) 1px,transparent 1px),
+    linear-gradient(to bottom,var(--line) 1px,transparent 1px);
+    background-size:80px 80px;mask-image:radial-gradient(ellipse at 70% 50%,#000 30%,transparent 75%);}
+  .hero .orb{position:absolute;right:-12vw;top:50%;transform:translateY(-50%);width:78vh;height:78vh;border-radius:50%;
+    background:conic-gradient(from 220deg at 50% 50%, #2a2147, #6232b2, #ff7ad0, #d6ff3d, #7ad0ff, #2a2147);
+    filter:blur(60px);opacity:.55;animation:spin 28s linear infinite;}
+  .hero .orb::after{content:"";position:absolute;inset:8%;border-radius:50%;background:var(--bg);filter:blur(40px);}
+  @keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}
+  .hero .ring{position:absolute;right:-12vw;top:50%;transform:translateY(-50%);width:78vh;height:78vh;border-radius:50%;border:1px solid var(--line-2);}
+  .hero .ring.r2{width:62vh;height:62vh;}
+  .hero .ring.r3{width:46vh;height:46vh;}
+
+  .hero-inner{position:relative;z-index:2;max-width:1280px;margin:0 auto;width:100%;display:grid;grid-template-columns:1.2fr .8fr;gap:80px;align-items:end;}
+  .hero h1 span.line{display:block;}
+  .hero h1 .accent{color:var(--accent);font-weight:900;font-family:"TW Road","Noto Serif TC",serif;}
+  .hero h1 .stroke{-webkit-text-stroke:1.5px var(--ink);color:transparent;}
+  .hero-meta{display:flex;flex-direction:column;gap:24px;padding-bottom:6px;}
+  .hero-meta .row{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line);}
+  .hero-meta .row .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-mute);text-transform:uppercase;}
+  .hero-meta .row .v{font-size:14px;color:var(--ink);font-weight:500;}
+  .hero-scroll{position:absolute;bottom:36px;left:7vw;right:7vw;display:flex;justify-content:space-between;align-items:center;z-index:2;}
+  .hero-scroll .arrow{display:flex;align-items:center;gap:14px;color:var(--ink-dim);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;}
+  .hero-scroll .arrow .line{width:60px;height:1px;background:var(--ink-dim);position:relative;overflow:hidden;}
+  .hero-scroll .arrow .line::after{content:"";position:absolute;left:-30%;top:0;width:30%;height:100%;background:var(--accent);animation:slide 2.2s ease-in-out infinite;}
+  @keyframes slide{0%{left:-30%;}100%{left:100%;}}
+
+  /* ============================================================
+     SECTION: Origin
+  ============================================================ */
+  .origin{background:linear-gradient(180deg,var(--bg) 0%,#0a0915 100%);}
+  .origin-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:80px;align-items:start;max-width:1280px;margin:0 auto;width:100%;}
+  .origin-grid .left{position:sticky;top:140px;}
+  .number-big{font-family:"Noto Serif TC",serif;font-size:clamp(120px,18vw,260px);line-height:.85;font-weight:900;
+    background:linear-gradient(180deg,var(--ink) 0%,#252333 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.04em;}
+  .pain-card{padding:36px 0;border-top:1px solid var(--line);}
+  .pain-card:last-child{border-bottom:1px solid var(--line);}
+  .pain-card .idx{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase;margin-bottom:14px;}
+  .pain-card h3{margin-bottom:14px;}
+  .pain-card .body{max-width:54ch;}
+  .pain-card .quote{margin-top:18px;padding:16px 22px;border-left:2px solid var(--accent);background:rgba(214,255,61,.04);font-family:"Noto Serif TC",serif;font-style:italic;color:var(--ink);font-size:15px;line-height:1.6;}
+
+  .flow-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:32px;margin-top:80px;align-items:stretch;}
+  .flow-card{padding:32px;border:1px solid var(--line);background:rgba(255,255,255,.015);position:relative;}
+  .flow-card.old{filter:saturate(.6);}
+  .flow-card.new{border-color:rgba(214,255,61,.35);background:rgba(214,255,61,.025);}
+  .flow-card .tag{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:12px;}
+  .flow-card.new .tag{color:var(--accent);}
+  .flow-card h4{font-family:"Noto Serif TC",serif;font-size:24px;font-weight:900;margin-bottom:24px;letter-spacing:-.01em;}
+  .flow-card ol{list-style:none;counter-reset:s;}
+  .flow-card ol li{counter-increment:s;padding:12px 0 12px 38px;position:relative;font-size:14px;color:var(--ink-dim);line-height:1.6;border-bottom:1px dashed var(--line);}
+  .flow-card ol li:last-child{border-bottom:none;}
+  .flow-card ol li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:12px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.1em;}
+  .flow-card.new ol li::before{color:var(--accent);}
+  .flow-arrow{display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;color:var(--accent);font-size:24px;}
+
+  /* ============================================================
+     SECTION: Architecture
+  ============================================================ */
+  .arch{background:#0a0915;}
+  .arch-head{max-width:1280px;margin:0 auto 80px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:end;}
+  .arch-diagram{max-width:1280px;margin:0 auto;width:100%;}
+  .stack-table{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line-2);}
+  .stack-row{display:grid;grid-template-columns:80px 1fr 1.2fr 100px;align-items:center;padding:24px 0;border-bottom:1px solid var(--line);transition:background .3s,padding .3s;}
+  .stack-row:hover{background:rgba(214,255,61,.03);padding-left:12px;}
+  .stack-row .n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.15em;}
+  .stack-row .name{font-family:"Noto Serif TC",serif;font-size:22px;font-weight:700;letter-spacing:-.01em;}
+  .stack-row .desc{font-size:14px;color:var(--ink-dim);}
+  .stack-row .badge{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;color:var(--accent);text-align:right;}
+  .stack-table{display:block;}
+
+  .flowchart{margin-top:80px;padding:48px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(214,255,61,.02),transparent);}
+  .flow-rows{display:flex;flex-direction:column;gap:0;font-family:"JetBrains Mono",monospace;}
+  .flow-rows .step{display:grid;grid-template-columns:60px 1fr;align-items:center;padding:18px 0;border-bottom:1px dashed var(--line);position:relative;}
+  .flow-rows .step:last-child{border-bottom:none;}
+  .flow-rows .step .idx{font-size:11px;letter-spacing:.2em;color:var(--accent);}
+  .flow-rows .step .txt{font-size:14px;color:var(--ink);letter-spacing:.05em;}
+  .flow-rows .step .txt em{color:var(--ink-mute);font-style:normal;font-size:12px;margin-left:12px;}
+
+  .arch-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:80px;background:var(--line);border:1px solid var(--line);}
+  .arch-stats .cell{background:var(--bg-2);padding:36px 28px;}
+  .arch-stats .cell .big{font-family:"Noto Serif TC",serif;font-size:64px;font-weight:900;line-height:1;letter-spacing:-.03em;color:var(--ink);}
+  .arch-stats .cell .big sup{font-size:24px;color:var(--accent);vertical-align:top;}
+  .arch-stats .cell .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;color:var(--ink-mute);text-transform:uppercase;margin-top:12px;}
+  .arch-stats .cell .desc{font-size:13px;color:var(--ink-dim);margin-top:8px;line-height:1.5;}
+
+  /* ============================================================
+     SECTION: AI
+  ============================================================ */
+  .ai{background:#070710;overflow:hidden;}
+  .ai .head{max-width:1280px;margin:0 auto 60px;width:100%;}
+  .ai-list{max-width:1280px;margin:0 auto;width:100%;}
+  .ai-row{display:grid;grid-template-columns:80px 1.2fr 2fr 1fr;gap:40px;padding:48px 0;border-top:1px solid var(--line);align-items:start;position:relative;transition:padding .4s;}
+  .ai-row:last-child{border-bottom:1px solid var(--line);}
+  .ai-row::before{content:"";position:absolute;left:0;top:0;width:0;height:1px;background:var(--accent);transition:width .8s cubic-bezier(.2,.8,.2,1);}
+  .ai-row.in::before{width:100%;}
+  .ai-row:hover{padding-left:20px;}
+  .ai-row .num{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;color:var(--ink-mute);padding-top:6px;}
+  .ai-row .name{font-family:"Noto Serif TC",serif;font-size:32px;font-weight:900;letter-spacing:-.02em;line-height:1.1;}
+  .ai-row .name small{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;font-weight:400;margin-top:8px;}
+  .ai-row .role{font-size:14px;color:var(--ink-dim);line-height:1.7;}
+  .ai-row .role b{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);margin:0 0 4px;font-weight:400;}
+  .ai-row .role .item+ .item{margin-top:12px;}
+  .ai-row .result{font-size:13px;color:var(--ink);line-height:1.7;border-left:1px solid var(--accent);padding-left:18px;}
+  .ai-row .result b{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;font-weight:400;}
+
+  .helpers{margin-top:80px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);}
+  .helper{background:var(--bg-2);padding:24px;}
+  .helper .n{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;color:var(--ink-mute);margin-bottom:8px;}
+  .helper .v{font-size:14px;color:var(--ink);}
+
+  /* ============================================================
+     SECTION: Outcome (CP值)
+  ============================================================ */
+  .outcome{background:linear-gradient(180deg,#070710,#0d0a1a);}
+  .outcome-grid{max-width:1280px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:48px;}
+  .outcome-card{padding:40px;border:1px solid var(--line);background:rgba(255,255,255,.012);transition:transform .5s,border-color .5s;}
+  .outcome-card:hover{transform:translateY(-6px);border-color:var(--line-2);}
+  .outcome-card .ico{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.25em;color:var(--accent);margin-bottom:20px;}
+  .outcome-card h3{margin-bottom:18px;}
+  .outcome-card ul{list-style:none;}
+  .outcome-card ul li{padding:10px 0 10px 28px;position:relative;font-size:14.5px;color:var(--ink-dim);line-height:1.7;border-bottom:1px dashed var(--line);}
+  .outcome-card ul li:last-child{border-bottom:none;}
+  .outcome-card ul li::before{content:"→";position:absolute;left:0;color:var(--accent);font-family:"JetBrains Mono",monospace;}
+
+  /* ============================================================
+     SECTION: Outro
+  ============================================================ */
+  .outro{background:#070710;text-align:center;align-items:center;}
+  .outro .inner{max-width:1100px;margin:0 auto;}
+  .outro .signature{font-family:"TW Road","Noto Serif TC",serif;font-weight:900;font-size:clamp(40px,5.4vw,84px);line-height:1.25;letter-spacing:-.01em;}
+  .outro .signature .accent{color:var(--accent);}
+  .outro .signature .stroke{-webkit-text-stroke:1.2px var(--ink);color:transparent;}
+  .outro .end-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:80px;background:var(--line);}
+  .outro .end-stats .cell{background:var(--bg);padding:32px;text-align:left;}
+  .outro .end-stats .big{font-family:"Noto Serif TC",serif;font-size:48px;font-weight:900;letter-spacing:-.02em;}
+  .outro .end-stats .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;color:var(--ink-mute);text-transform:uppercase;margin-top:8px;}
+  .outro footer{margin-top:120px;padding-top:32px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);}
+
+  /* ============================================================
+     Marquee
+  ============================================================ */
+  .marquee{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:22px 0;background:var(--bg);}
+  .marquee .track{display:flex;gap:64px;white-space:nowrap;animation:marq 40s linear infinite;font-family:"Noto Serif TC",serif;font-size:42px;font-weight:900;letter-spacing:-.01em;color:var(--ink);}
+  .marquee .track span{display:inline-flex;align-items:center;gap:24px;}
+  .marquee .track span::after{content:"✦";color:var(--accent);font-size:24px;}
+  @keyframes marq{to{transform:translateX(-50%);}}
+
+  @media (max-width:900px){
+    .hero-inner,.origin-grid,.arch-head,.outcome-grid{grid-template-columns:1fr !important;gap:40px;}
+    .origin-grid .left{position:static;}
+    .flow-compare{grid-template-columns:1fr;}
+    .flow-arrow{transform:rotate(90deg);padding:8px 0;}
+    .ai-row{grid-template-columns:1fr;gap:18px;padding:36px 0;}
+    .arch-stats,.outro .end-stats{grid-template-columns:1fr 1fr;}
+    .helpers{grid-template-columns:1fr 1fr;}
+    .topbar nav{display:none;}
+    section{padding:100px 6vw 80px;}
+  }
+</style>
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#070710">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#070710"/>
+    <circle cx="900" cy="400" r="240" fill="none" stroke="#d6ff3d" stroke-width="2" opacity="0.6"/>
+    <circle cx="900" cy="400" r="180" fill="none" stroke="#7ad0ff" stroke-width="2" opacity="0.4"/>
+    <circle cx="900" cy="400" r="120" fill="#d6ff3d" opacity="0.9"/>
+    <text x="100" y="380" fill="#f3f1ea" font-family="serif" font-weight="900" font-size="120" letter-spacing="-2">TTQS</text>
+    <text x="100" y="470" fill="#d6ff3d" font-family="monospace" font-size="22" letter-spacing="6">CASE STUDY · 2026</text>
+    <text x="100" y="720" fill="#a8a6b8" font-family="monospace" font-size="16" letter-spacing="4">LOLO · NETWORK DEPT.</text>
+  </svg>
+</template>
+
+<div class="grain"></div>
+<div class="vignette"></div>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <div class="mark"><span class="dot"></span>TTQS · CASE STUDY</div>
+  <nav id="nav">
+    <a href="#hero" data-target="hero" class="is-active">01 / 緣起</a>
+    <a href="#origin" data-target="origin">02 / 痛點</a>
+    <a href="#arch" data-target="arch">03 / 架構</a>
+    <a href="#ai" data-target="ai">04 / AI</a>
+    <a href="#outcome" data-target="outcome">05 / 成果</a>
+    <a href="#outro" data-target="outro">06 / 結語</a>
+  </nav>
+</header>
+
+<!-- =========================== HERO =========================== -->
+<section class="hero" id="hero" data-name="hero">
+  <div class="canvas">
+    <div class="grid-bg"></div>
+    <div class="orb"></div>
+    <div class="ring"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+  </div>
+
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow reveal in">A·I × 訓練品質評核系統 · 2026</div>
+      <h1 class="display reveal in d1">
+        <span class="line">把<span class="accent">繁瑣的</span></span>
+        <span class="line">佐證彙整，</span>
+        <span class="line stroke">變成一場遊戲。</span>
+      </h1>
+      <p class="lead reveal in d3" style="margin-top:32px;">一個原本只為自救而做的小工具，最後長成可以幫助整個學院的內部產品。本頁紀錄它的緣起、架構、AI 運用，以及一些有點私心的下一步。</p>
+    </div>
+
+    <aside class="hero-meta reveal in d4">
+      <div class="row"><span class="k">Project</span><span class="v">TTQS Game</span></div>
+      <div class="row"><span class="k">Owner</span><span class="v">網路學系</span></div>
+      <div class="row"><span class="k">Author</span><span class="v" style="font-family:'TW Road','Noto Serif TC',serif;letter-spacing:.02em;">李怡菁 LOLO 老師</span></div>
+      <div class="row"><span class="k">Stack</span><span class="v">React · Firebase · GitHub Pages</span></div>
+      <div class="row"><span class="k">Cost</span><span class="v">USD&nbsp;$0 / month</span></div>
+      <div class="row"><span class="k">Status</span><span class="v" style="color:var(--accent);">● Live</span></div>
+    </aside>
+  </div>
+
+  <div class="hero-scroll">
+    <div class="arrow">
+      <span>Scroll</span>
+      <div class="line"></div>
+    </div>
+    <div class="mono">01 — 06</div>
+  </div>
+</section>
+
+<!-- =========================== MARQUEE =========================== -->
+<div class="marquee" aria-hidden="true">
+  <div class="track">
+    <span>緣起</span><span>痛點</span><span>自動化</span><span>遊戲化</span><span>架構</span><span>AI 工具</span><span>結語</span>
+    <span>緣起</span><span>痛點</span><span>自動化</span><span>遊戲化</span><span>架構</span><span>AI 工具</span><span>結語</span>
+  </div>
+</div>
+
+<!-- =========================== ORIGIN =========================== -->
+<section class="origin" id="origin" data-name="origin">
+  <div class="origin-grid">
+    <aside class="left reveal">
+      <div class="eyebrow">02 · 緣起與痛點</div>
+      <div class="number-big">01.</div>
+      <h2 class="h2" style="margin-top:8px;">為什麼<br/>會做這個？</h2>
+      <p class="body" style="margin-top:28px;max-width:36ch;">學院要參加勞動部的 <strong>TTQS 訓練品質評核</strong>，需要上傳 19 項指標的佐證檔案。我想「幫自己整理就好」，結果發現「同系老師也能用」，再後來——「其他系應該也都用得到」。一個自救的小工具，意外長成了一個專案。</p>
+    </aside>
+
+    <div class="pain-list">
+      <article class="pain-card reveal d1">
+        <div class="idx">PAIN · 01</div>
+        <h3 class="h3">培訓師根本不知道什麼叫「佐證」</h3>
+        <p class="body">TTQS 有 19 項指標，每項對應不同的佐證資料，規則並不直觀。我跟同系老師說「給我課程設計的資料」，他們隨便丟一份「課程表」過來；我得花時間判斷：這是<strong>指標 6</strong>還是<strong>指標 9</strong>？有時連我都不確定。</p>
+        <blockquote class="quote">我就像一台「TTQS 指標翻譯機」，老師丟檔案進來,我要逐一辨認它屬於哪個指標。</blockquote>
+      </article>
+
+      <article class="pain-card reveal d2">
+        <div class="idx">PAIN · 02</div>
+        <h3 class="h3">同一份資料對應好幾個指標</h3>
+        <p class="body">最尷尬的情況：一份「課程表」可能同時對應 <strong>指標 2 訓練政策</strong>、<strong>指標 6 課程設計</strong>、<strong>指標 10 訓練管理</strong>。我跟老師說「能不能再給我一份課程表」,老師心想:「同一份東西為什麼要兩份?」</p>
+        <blockquote class="quote">在老師眼裡,我是個「貪心的檔案怪獸」。但不收齊,評鑑就會說「佐證資料不足」。</blockquote>
+      </article>
+
+      <article class="pain-card reveal d3">
+        <div class="idx">PAIN · 03</div>
+        <h3 class="h3">最痛苦的是,手動彙整這件事本身</h3>
+        <p class="body">收到檔案後,我得改檔名、判斷指標、檢查重複、更新紀錄、整理資料夾……<strong>50 份檔案花了 30 小時</strong>,而且這還要一邊開課。最糟的是——如果每年都要評鑑,那我每年都要重複一遍嗎?</p>
+        <blockquote class="quote">整理檔案時我就在想:「有沒有辦法讓電腦自動做這些事?」答案是有的——我就自己寫了一個。</blockquote>
+      </article>
+    </div>
+  </div>
+
+  <!-- Old vs New flow -->
+  <div class="flow-compare" style="max-width:1280px;margin:120px auto 0;width:100%;">
+    <div class="flow-card old reveal">
+      <div class="tag">Before · 手動流程</div>
+      <h4>30 小時 / 50 份檔案</h4>
+      <ol>
+        <li>老師丟來的檔案,檔名通常很隨意</li>
+        <li>看內容,判斷「這是指標幾」</li>
+        <li>把檔名改成統一格式</li>
+        <li>檢查重複檔案、版本差異</li>
+        <li>更新紀錄、整理資料夾</li>
+        <li>每年評鑑重複一次,無限循環</li>
+      </ol>
+    </div>
+    <div class="flow-arrow reveal d1">→</div>
+    <div class="flow-card new reveal d2">
+      <div class="tag">After · 自動化 + 遊戲化</div>
+      <h4>幾分鐘 / 一鍵下載</h4>
+      <ol>
+        <li>老師拖入檔案到「上傳精靈」</li>
+        <li>系統自動判斷對應指標</li>
+        <li>系統自動檢查重複與版本</li>
+        <li>系統自動正規化檔名</li>
+        <li>自動生成 CSV 報表 + ZIP 打包</li>
+        <li>老師看到積分升級,主動上傳</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== ARCHITECTURE =========================== -->
+<section class="arch" id="arch" data-name="arch">
+  <div class="arch-head">
+    <div class="reveal">
+      <div class="eyebrow">03 · 技術架構</div>
+      <h2 class="h2">無編譯前端,<br/><span style="font-family:'TW Road','Noto Serif TC',serif;font-weight:900;color:var(--accent);">無伺服器後端。</span></h2>
+    </div>
+    <div class="reveal d1">
+      <p class="lead">單一 HTML 入口,瀏覽器內即時編譯 JSX;Firebase 提供即時資料庫、檔案儲存與匿名驗證,GitHub Pages 負責靜態托管。沒有 Webpack、沒有 Vite、沒有 Node 伺服器,卻有完整的多人即時協作。</p>
+    </div>
+  </div>
+
+  <div class="arch-diagram">
+
+    <!-- Stack -->
+    <div class="reveal">
+      <div class="mono" style="margin-bottom:18px;">— Stack · 技術堆疊</div>
+      <div class="stack-table">
+        <div class="stack-row"><span class="n">01</span><span class="name">React 18.3.1</span><span class="desc">CDN 引入,無 npm 依賴</span><span class="badge">FRONTEND</span></div>
+        <div class="stack-row"><span class="n">02</span><span class="name">@babel/standalone</span><span class="desc">瀏覽器內即時編譯 JSX</span><span class="badge">RUNTIME</span></div>
+        <div class="stack-row"><span class="n">03</span><span class="name">Firebase Realtime DB</span><span class="desc">玩家資料、上傳紀錄即時同步</span><span class="badge">DATA</span></div>
+        <div class="stack-row"><span class="n">04</span><span class="name">Firebase Storage</span><span class="desc">佐證檔案實體儲存</span><span class="badge">STORAGE</span></div>
+        <div class="stack-row"><span class="n">05</span><span class="name">Firebase Auth</span><span class="desc">匿名驗證,無帳號登入</span><span class="badge">AUTH</span></div>
+        <div class="stack-row"><span class="n">06</span><span class="name">JSZip 3.10.1</span><span class="desc">批次下載打包 ZIP</span><span class="badge">UTILS</span></div>
+        <div class="stack-row"><span class="n">07</span><span class="name">GitHub Pages</span><span class="desc">靜態網站免費托管</span><span class="badge">HOSTING</span></div>
+        <div class="stack-row"><span class="n">08</span><span class="name">Google Fonts</span><span class="desc">Noto Serif · JetBrains Mono</span><span class="badge">TYPE</span></div>
+      </div>
+    </div>
+
+    <!-- Flow -->
+    <div class="flowchart reveal d1">
+      <div class="mono" style="color:var(--accent);margin-bottom:24px;">— Data Flow · 資料流向</div>
+      <div class="flow-rows">
+        <div class="step"><span class="idx">→ 01</span><span class="txt">FILE_DROP<em>老師拖入檔案</em></span></div>
+        <div class="step"><span class="idx">→ 02</span><span class="txt">FILE_READER<em>瀏覽器原生 API 讀取</em></span></div>
+        <div class="step"><span class="idx">→ 03</span><span class="txt">UPLOAD → FIREBASE_STORAGE<em>實體檔案上傳</em></span></div>
+        <div class="step"><span class="idx">→ 04</span><span class="txt">WRITE → REALTIME_DB<em>上傳紀錄 metadata</em></span></div>
+        <div class="step"><span class="idx">→ 05</span><span class="txt">SUBSCRIBE · onValue()<em>多裝置即時同步</em></span></div>
+        <div class="step"><span class="idx">→ 06</span><span class="txt">AUTO_CLASSIFY<em>系統自動判斷指標</em></span></div>
+        <div class="step"><span class="idx">→ 07</span><span class="txt">UPDATE_SCORE · UNLOCK_BADGE<em>積分、徽章、等級更新</em></span></div>
+        <div class="step"><span class="idx">→ 08</span><span class="txt">RERENDER_UI<em>即時呈現進度與成就</em></span></div>
+      </div>
+    </div>
+
+    <!-- Numbers -->
+    <div class="arch-stats reveal d2">
+      <div class="cell"><div class="big">$<sup>0</sup></div><div class="lbl">Monthly Cost</div><div class="desc">Firebase Spark 免費方案 + GitHub Pages 靜態托管。</div></div>
+      <div class="cell"><div class="big">0</div><div class="lbl">Build Step</div><div class="desc">無編譯,瀏覽器即時 transpile JSX。</div></div>
+      <div class="cell"><div class="big">8</div><div class="lbl">React Modules</div><div class="desc">Landing / Map / Upload / Profile…</div></div>
+      <div class="cell"><div class="big">19</div><div class="lbl">TTQS Indicators</div><div class="desc">PDDRO 五大關卡完整覆蓋。</div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- =========================== AI =========================== -->
+<section class="ai" id="ai" data-name="ai">
+  <div class="head">
+    <div class="reveal">
+      <div class="eyebrow">04 · AI 技術運用</div>
+      <h2 class="h2">不是 AI 輔助開發,<br/>是與 AI <span style="font-family:'TW Road','Noto Serif TC',serif;font-weight:900;color:var(--accent);">共同設計</span>整個專案。</h2>
+      <p class="lead" style="margin-top:28px;">從架構草圖、UI 視覺、TTQS 指標查核到 bug 修復,每個環節都有不同的 AI 工具負責。下表是各個 AI 在這個專案裡實際的角色。</p>
+    </div>
+  </div>
+
+  <div class="ai-list" style="margin-top:80px;">
+    <article class="ai-row reveal">
+      <div class="num">01</div>
+      <div class="name">Claude Code<small>Development</small></div>
+      <div class="role">
+        <div class="item"><b>Role</b>全程開發 / bug 修復 / 重構</div>
+        <div class="item"><b>How</b>用 Claude Code CLI 實作功能,透過 Git worktree 多分支並行開發。</div>
+      </div>
+      <div class="result"><b>Output</b>所有功能模組(Landing、Upload、Map…)、計算引擎、Firebase 整合。</div>
+    </article>
+
+    <article class="ai-row reveal">
+      <div class="num">02</div>
+      <div class="name">Claude Chat<small>Planning</small></div>
+      <div class="role">
+        <div class="item"><b>Role</b>功能規劃 / 架構討論 / 內容確認</div>
+        <div class="item"><b>How</b>與 Claude 討論系統架構、遊戲化設計、TTQS 指標、文案撰寫。</div>
+      </div>
+      <div class="result"><b>Output</b>積分系統設計、指標對應邏輯、本份專案說明文件。</div>
+    </article>
+
+    <article class="ai-row reveal">
+      <div class="num">03</div>
+      <div class="name">Claude Design<small>UI / UX</small></div>
+      <div class="role">
+        <div class="item"><b>Role</b>視覺設計 / 風格語言確立</div>
+        <div class="item"><b>How</b>在 claude.ai 上發想 UI、確立配色方案、像素風格與排版節奏。</div>
+      </div>
+      <div class="result"><b>Output</b>8-bit 像素遊戲視覺、PDDRO 五大關卡配色、整體設計語彙。</div>
+    </article>
+
+    <article class="ai-row reveal">
+      <div class="num">04</div>
+      <div class="name">ChatGPT<small>Fact-check</small></div>
+      <div class="role">
+        <div class="item"><b>Role</b>TTQS 指標正式名稱查核</div>
+        <div class="item"><b>How</b>確認 19 項指標的正式名稱、佐證類型對照表整理。</div>
+      </div>
+      <div class="result"><b>Output</b>data.jsx 中 INDICATORS 與 EVIDENCE_TYPES 的準確性保證。</div>
+    </article>
+
+    <article class="ai-row reveal">
+      <div class="num">05</div>
+      <div class="name">Gemini<small>Cross-validate</small></div>
+      <div class="role">
+        <div class="item"><b>Role</b>框架補充 / 內容校對</div>
+        <div class="item"><b>How</b>補充 TTQS 框架資料、指標描述校對、評鑑標準確認。</div>
+      </div>
+      <div class="result"><b>Output</b>各指標的詳細說明、佐證資料對應的完整性。</div>
+    </article>
+  </div>
+
+  <!-- Helpers -->
+  <div class="helpers reveal" style="max-width:1280px;margin:80px auto 0;width:100%;">
+    <div class="helper"><div class="n">— Sketch</div><div class="v">Napkin AI<br/><span style="color:var(--ink-mute);font-size:12px;">早期架構草圖</span></div></div>
+    <div class="helper"><div class="n">— Type</div><div class="v">Google Fonts<br/><span style="color:var(--ink-mute);font-size:12px;">Noto Serif / JetBrains Mono</span></div></div>
+    <div class="helper"><div class="n">— Console</div><div class="v">Firebase Console<br/><span style="color:var(--ink-mute);font-size:12px;">資料瀏覽 · Analytics</span></div></div>
+    <div class="helper"><div class="n">— VCS</div><div class="v">Git + GitHub<br/><span style="color:var(--ink-mute);font-size:12px;">版本控制 + worktree</span></div></div>
+  </div>
+</section>
+
+<!-- =========================== OUTCOME =========================== -->
+<section class="outcome" id="outcome" data-name="outcome">
+  <div style="max-width:1280px;margin:0 auto 60px;width:100%;">
+    <div class="reveal">
+      <div class="eyebrow">05 · 為什麼 CP 值超高</div>
+      <h2 class="h2">從第一天起,<br/>就是與 AI <span style="font-family:'TW Road','Noto Serif TC',serif;font-weight:900;color:var(--accent);">並肩工作</span>。</h2>
+      <p class="lead" style="margin-top:24px;">不是「先手動做、再用 AI 優化」,而是「直接用 AI 設計、開發、測試、部署」。最後得到的結果是——</p>
+    </div>
+  </div>
+
+  <div class="outcome-grid">
+    <div class="outcome-card reveal">
+      <div class="ico">✦ DEV · 開發效率</div>
+      <h3 class="h3">從想法到上線,1–2 週。</h3>
+      <ul>
+        <li>無編譯,直接 HTML + JSX 開發</li>
+        <li>零伺服器成本,Firebase 免費方案即可</li>
+        <li>GitHub Pages 自動部署,無維護負擔</li>
+        <li>AI 從架構到 debug,全鏈路覆蓋</li>
+      </ul>
+    </div>
+
+    <div class="outcome-card reveal d1">
+      <div class="ico">✦ OPS · 工作效率提升</div>
+      <h3 class="h3">把「我判斷」交給「系統判斷」。</h3>
+      <ul>
+        <li>佐證彙整從手動 → 自動</li>
+        <li>指標判斷從我 → 系統</li>
+        <li>報表生成從手做 → 一鍵下載</li>
+        <li>老師上傳從被動追 → 主動提供</li>
+      </ul>
+    </div>
+
+    <div class="outcome-card reveal d2">
+      <div class="ico">✦ INNO · AI 驅動創新</div>
+      <h3 class="h3">五個 AI,各司其職。</h3>
+      <ul>
+        <li>架構設計:AI 幫我想清楚遊戲化激發動機</li>
+        <li>快速實現:Claude Code 數小時即可成形</li>
+        <li>內容精準:多 AI 交叉驗證 TTQS 指標</li>
+        <li>視覺創意:Claude Design 確立風格語彙</li>
+      </ul>
+    </div>
+
+    <div class="outcome-card reveal d3">
+      <div class="ico">✦ VALUE · 工作中的實際價值</div>
+      <h3 class="h3">不只省時,還能持續長大。</h3>
+      <ul>
+        <li>減少重複:自動化 50 份檔案的彙整流程</li>
+        <li>提升協作:多人即時同步,不用傳檔</li>
+        <li>動機激發:遊戲化讓老師樂意提供</li>
+        <li>可持續擴展:架構簡單,新功能易疊加</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== OUTRO =========================== -->
+<section class="outro" id="outro" data-name="outro">
+  <div class="inner">
+    <div class="eyebrow reveal" style="justify-content:center;">06 · 結語</div>
+
+    <p class="signature reveal d1">
+      一開始,<br/>
+      只是想<span class="accent">幫自己整理資料</span>。<br/>
+      後來才發現——<br/>
+      <span class="stroke">原來這件事,</span><br/>
+      可以幫到其他人。
+    </p>
+
+    <p class="lead reveal d2" style="margin:48px auto 0;max-width:50ch;">零編譯、零伺服器、零成本。再加上五個 AI 工具一起並肩工作。這不是「便宜的內部工具」,這是<strong style="color:var(--ink);">用 AI 進行工作創新</strong>最具體的一個範例。</p>
+
+    <div class="end-stats reveal d3">
+      <div class="cell"><div class="big">19</div><div class="lbl">TTQS Indicators</div></div>
+      <div class="cell"><div class="big">5</div><div class="lbl">AI Co-workers</div></div>
+      <div class="cell"><div class="big">8</div><div class="lbl">React Modules</div></div>
+      <div class="cell"><div class="big">$0</div><div class="lbl">Monthly Cost</div></div>
+    </div>
+
+    <div class="reveal d4" style="margin-top:96px;padding-top:48px;border-top:1px solid var(--line);">
+      <div class="mono" style="margin-bottom:14px;letter-spacing:.3em;">— Authored by</div>
+      <div style="font-family:'TW Road','Noto Serif TC',serif;font-size:clamp(48px,6vw,96px);font-weight:900;letter-spacing:-.01em;line-height:1;color:var(--ink);">李怡菁 <span style="color:var(--accent);">LOLO</span> 老師</div>
+      <div class="mono" style="margin-top:18px;color:var(--ink-dim);letter-spacing:.22em;">網路學系 · TTQS Project Lead</div>
+    </div>
+
+    <footer>
+      <span>網路學系 · 2026 年 4 月</span>
+      <span>用 AI 創新 · 提升工作效率</span>
+      <span>End of Document — 06 / 06</span>
+    </footer>
+  </div>
+</section>
+
+<script>
+  // Progress bar
+  const bar = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+    bar.style.width = pct + '%';
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Reveal observer
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Nav active state
+  const navLinks = [...document.querySelectorAll('#nav a')];
+  const sections = [...document.querySelectorAll('section[data-name]')];
+  const navIO = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const name = e.target.getAttribute('data-name');
+        navLinks.forEach(a => a.classList.toggle('is-active', a.getAttribute('data-target') === name));
+      }
+    });
+  }, { threshold: 0.4 });
+  sections.forEach(s => navIO.observe(s));
+
+  // Smooth nav
+  navLinks.forEach(a => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    const t = document.getElementById(a.getAttribute('data-target'));
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+</script>
+
+</body>
+</html>
