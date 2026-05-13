@@ -1,5 +1,5 @@
 // 成員選擇大廳：列出所有成員卡片 + 新增成員入口
-function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport }) {
+function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport, onEditUpload, onDeleteUpload }) {
   const isEmpty = players.length === 0;
   const [teamView, setTeamView] = useState(null);
 
@@ -12,6 +12,8 @@ function ScreenLanding({ players, onSelect, onNewPlayer, onDelete, onOpenReport 
           team={teamViewData}
           players={players}
           onClose={() => setTeamView(null)}
+          onEditUpload={onEditUpload}
+          onDeleteUpload={onDeleteUpload}
         />
       )}
       {/* 標題 */}
@@ -428,7 +430,7 @@ function TeamRanking({ players, onTeamClick }) {
 }
 
 // ── 戰隊成就地圖 Modal ──
-function TeamAchievementModal({ team, players, onClose }) {
+function TeamAchievementModal({ team, players, onClose, onEditUpload, onDeleteUpload }) {
   const [selected, setSelected] = useState(null);
 
   const teamPlayers = useMemo(
@@ -509,6 +511,8 @@ function TeamAchievementModal({ team, players, onClose }) {
             playerMap={playerMap}
             teamData={team}
             onClose={() => setSelected(null)}
+            onEditUpload={onEditUpload}
+            onDeleteUpload={onDeleteUpload}
           />
         )}
       </div>

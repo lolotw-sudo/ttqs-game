@@ -389,9 +389,24 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
                         <span key={m.id} style={{
                           fontFamily: "'DotGothic16', monospace", fontSize: 12,
                           background: PALETTE.green + '22', color: PALETTE.green,
-                          padding: '2px 8px', border: `1px solid ${PALETTE.green}`,
-                          display: 'block',
-                        }}>{m.name}</span>
+                          padding: '2px 6px', border: `1px solid ${PALETTE.green}`,
+                          display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
+                        }}>
+                          {m.maps.map(indId => {
+                            const indObj = INDICATORS.find(i => i.id === indId);
+                            const stg = indObj ? STAGES.find(s => s.id === indObj.stage) : null;
+                            const bc = stg ? stg.color : PALETTE.textDim;
+                            return (
+                              <span key={indId} style={{
+                                background: bc + '33', color: bc,
+                                border: `1px solid ${bc}66`,
+                                fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                                padding: '1px 3px', borderRadius: 2, flexShrink: 0,
+                              }}>#{indId}</span>
+                            );
+                          })}
+                          {m.name}
+                        </span>
                       ))}
                       {playerMap?.[u.id] && (
                         <span style={{
@@ -505,15 +520,29 @@ function IndicatorDetail({ indicator, state, uploads, onClose, onOpenUpload, onD
                           const active = editTypeIds.includes(t.id);
                           return (
                             <div key={t.id} onClick={() => toggleEditType(t.id)} style={{
-                              padding: '5px 10px', cursor: 'pointer', borderRadius: 3,
+                              padding: '4px 8px', cursor: 'pointer', borderRadius: 3,
                               background: active ? PALETTE.gold : PALETTE.panel,
                               color: active ? '#000' : PALETTE.text,
                               border: `2px solid ${active ? PALETTE.gold : PALETTE.border}`,
                               fontFamily: "'DotGothic16', monospace", fontSize: 12,
-                              display: 'flex', alignItems: 'center', gap: 5,
+                              display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
                             }}>
-                              {active && <span style={{ fontSize: 10 }}>✓</span>}
-                              {t.icon} {t.name}
+                              {active && <span style={{ fontSize: 9, flexShrink: 0 }}>✓</span>}
+                              {t.maps.map(indId => {
+                                const indObj = INDICATORS.find(i => i.id === indId);
+                                const stg = indObj ? STAGES.find(s => s.id === indObj.stage) : null;
+                                const bc = stg ? stg.color : PALETTE.textDim;
+                                return (
+                                  <span key={indId} style={{
+                                    background: active ? 'rgba(0,0,0,0.18)' : bc + '33',
+                                    color: active ? 'rgba(0,0,0,0.65)' : bc,
+                                    border: `1px solid ${active ? 'rgba(0,0,0,0.12)' : bc + '66'}`,
+                                    fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                                    padding: '1px 4px', borderRadius: 2, flexShrink: 0,
+                                  }}>#{indId}</span>
+                                );
+                              })}
+                              <span>{t.name}</span>
                             </div>
                           );
                         })}
