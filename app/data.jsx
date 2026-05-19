@@ -334,6 +334,16 @@ const EVIDENCE_TYPES = [
     desc: '特殊教學方式（如實習、演練、參訪）對應之班次班表',
   },
   {
+    id: 'featured_classroom_photo', name: '特色教室（照片）',         icon: '🏫', difficulty: 2, maps: [12],
+    unit: '學系',
+    desc: '特色教室環境之照片，用以說明教學場域設備與空間規劃',
+  },
+  {
+    id: 'special_teaching_photo',   name: '特殊教學（照片）',         icon: '📸', difficulty: 2, maps: [12],
+    unit: '學系',
+    desc: '特殊教學方式（如實習、演練、參訪）進行中之現場照片',
+  },
+  {
     id: 'cert_course',  name: '認證加強班計畫書',   icon: '🏫', difficulty: 4, maps: [13],
     unit: '學系＋培發',
     desc: '用以說明學習成果移轉，上完課還可輔導考到證照',
