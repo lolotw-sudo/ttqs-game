@@ -274,7 +274,7 @@ const EVIDENCE_TYPES = [
     desc: '數位教材建置、維護與管理之相關佐證文件',
   },
   {
-    id: 'material_purchase',  name: '教材採購流程簽呈', icon: '🖊️', difficulty: 5, maps: [10],
+    id: 'material_purchase',  name: '教材採購流程簽呈', icon: '🖊️', difficulty: 5, maps: [10, 12],
     unit: '學系',
     desc: '採購簽呈會有相對應利益關係人的簽核',
   },
@@ -307,11 +307,6 @@ const EVIDENCE_TYPES = [
     id: 'selection',    name: '學員遴選說明',       icon: '👥', difficulty: 3, maps: [12],
     unit: '培發',
     desc: '依照訓練屬性與目標遴選學員：通識／自我學習、年度計畫訓練、委辦訓練／專案訓練／學程認證訓練',
-  },
-  {
-    id: 'material_doc', name: '教材管理文件',       icon: '📚', difficulty: 1, maps: [12],
-    unit: '學系',
-    desc: '紙本／數位教材審核及採購流程；依訓練目標選擇紙本、數位或混成學習教材；學員可於教學網／email／Teams 取得講義',
   },
   {
     id: 'teacher_eval', name: '教師評鑑紀錄',       icon: '⭐', difficulty: 5, maps: [12],
