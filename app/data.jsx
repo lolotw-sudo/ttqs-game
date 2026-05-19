@@ -247,7 +247,7 @@ const EVIDENCE_TYPES = [
     desc: '學員結訓證書或訓練結束時師生合照',
   },
   {
-    id: 'class_photo',          name: '課堂照片',             icon: '📷', difficulty: 2, maps: [9],
+    id: 'class_photo',          name: '課堂照片',             icon: '📷', difficulty: 2, maps: [9, 12],
     unit: '學系',
     desc: '課程進行中之課堂教學或活動照片',
   },
@@ -277,6 +277,16 @@ const EVIDENCE_TYPES = [
     id: 'material_purchase',  name: '教材採購流程簽呈', icon: '🖊️', difficulty: 5, maps: [10],
     unit: '學系',
     desc: '採購簽呈會有相對應利益關係人的簽核',
+  },
+  {
+    id: 'pre_question_suggestion', name: '學員課前提問（含學員建議）', icon: '💬', difficulty: 3, maps: [11],
+    unit: '學系',
+    desc: '學員課前提問及建議，反映學員對課程目標的期待，用以說明需求與訓練目標結合',
+  },
+  {
+    id: 'class_roster', name: '班次人次對應表',     icon: '📋', difficulty: 3, maps: [11],
+    unit: '學系',
+    desc: '各班次學員人次對應紀錄，說明訓練執行與需求目標的對應關係',
   },
   {
     id: 'needs_case',   name: '課程需求設計案例',   icon: '🔍', difficulty: 4, maps: [11],
@@ -309,6 +319,26 @@ const EVIDENCE_TYPES = [
     desc: '依據各課程參考教師學經歷、職務、專長與教學滿意度遴選',
   },
   {
+    id: 'blended_plan',             name: '混成班佐證（開班計畫表）', icon: '📋', difficulty: 3, maps: [12],
+    unit: '學系',
+    desc: '混成式學習班次之開班計畫表，說明線上與實體課程的搭配規劃',
+  },
+  {
+    id: 'teacher_selection',        name: '師資選擇（師資）',         icon: '👨‍🏫', difficulty: 3, maps: [12],
+    unit: '學系',
+    desc: '依課程需求選擇適合師資之評估文件，含師資學經歷與專長說明',
+  },
+  {
+    id: 'teacher_schedule',         name: '師資選擇（班表）',         icon: '🗓️', difficulty: 3, maps: [12],
+    unit: '學系',
+    desc: '師資對應各班次之授課班表，說明師資配置與課程執行安排',
+  },
+  {
+    id: 'special_teaching_schedule',name: '特殊教學（班表）',         icon: '📅', difficulty: 3, maps: [12],
+    unit: '學系',
+    desc: '特殊教學方式（如實習、演練、參訪）對應之班次班表',
+  },
+  {
     id: 'cert_course',  name: '認證加強班計畫書',   icon: '🏫', difficulty: 4, maps: [13],
     unit: '學系＋培發',
     desc: '用以說明學習成果移轉，上完課還可輔導考到證照',
@@ -317,6 +347,16 @@ const EVIDENCE_TYPES = [
     id: 'applied_case', name: '學以致用案例',       icon: '💡', difficulty: 4, maps: [13, 17],
     unit: '學系',
     desc: '考照輔導機制、多元學習交流平台（e-learning／教學網／LINE／Teams）；課後行動計畫（學員實作報告）；學以致用獎具體成效',
+  },
+  {
+    id: 'retraining_notice', name: '回訓通知（eDM 或開課通知）', icon: '📨', difficulty: 4, maps: [13],
+    unit: '學系',
+    desc: '學員結訓後收到再次開課之回訓通知，說明學院持續追蹤學習成果移轉的機制',
+  },
+  {
+    id: 'competition_evidence', name: '課程競賽佐證', icon: '🏆', difficulty: 4, maps: [13],
+    unit: '學系',
+    desc: '學員參與課程相關競賽之佐證資料，用以說明學習成果實際移轉與應用',
   },
 
   // ── R 課後查核 ──────────────────────────────────────────
@@ -343,7 +383,7 @@ const EVIDENCE_TYPES = [
     desc: '反應評估：學員意見反應事項，最後說明我們有改善',
   },
   {
-    id: 'assessment',   name: '學員評量成果',       icon: '📝', difficulty: 2, maps: [8, 17],
+    id: 'assessment',   name: '學員評量成果',       icon: '📝', difficulty: 2, maps: [8, 11, 17],
     unit: '學系',
     desc: '學習評估：學員受訓成績評量、數位及實體課前／課後評量（考試／實作報告）、學員證照通過率；評量結果呈現：成績單／結業證書',
   },
