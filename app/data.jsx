@@ -402,6 +402,86 @@ const EVIDENCE_TYPES = [
     unit: '學系',
     desc: '學員表達肯定；技能檢定通過率高於業界',
   },
+  {
+    id: 'post_review',        name: '訓後定期性綜合檢討',       icon: '📋', difficulty: 5, maps: [15],
+    unit: '學系',
+    desc: '訓練結束後定期進行之綜合檢討紀錄，含問題彙整與改善行動',
+  },
+  {
+    id: 'monthly_report',     name: '每月業務會報',             icon: '📅', difficulty: 5, maps: [15],
+    unit: '學系',
+    desc: '每月業務會報紀錄，呈現訓練執行情形與訓練紀錄管理情況',
+  },
+  {
+    id: 'low_score_review',   name: '滿意度未達5.3分檢討',      icon: '⚠️', difficulty: 5, maps: [16],
+    unit: '學系',
+    desc: '課程滿意度未達 5.3 分時所進行之異常檢討與改善說明',
+  },
+  {
+    id: 'cert_rate_reason',   name: '學程認證班通過率超過85%原因說明', icon: '📊', difficulty: 5, maps: [16, 17],
+    unit: '學系',
+    desc: '學程認證班通過率超過 85% 之原因分析說明，佐證訓練品質與異常管理成效',
+  },
+  {
+    id: 'cert_discuss_mtg',   name: '學程認證討論會議紀錄',     icon: '📋', difficulty: 3, maps: [16],
+    unit: '學系',
+    desc: '學程認證相關討論會議之紀錄，用以佐證訓練成效評估過程',
+  },
+  {
+    id: 'repeat_client',      name: '目標客戶持續委託辦訓',     icon: '🔁', difficulty: 3, maps: [11, 19],
+    unit: '學系',
+    desc: '目標客戶（如電信子公司）持續委託學院辦訓之紀錄，說明訓練需求與目標持續結合',
+  },
+  {
+    id: 'quiz_bank',          name: '教學網題庫',               icon: '🖥️', difficulty: 4, maps: [17],
+    unit: '學系',
+    desc: '教學網或 e-learning 平台上的測驗題庫，用以說明學習評估工具的建置',
+  },
+  {
+    id: 'improvement_evidence', name: '上期檢討後本期改善佐證', icon: '📈', difficulty: 5, maps: [17],
+    unit: '學系',
+    desc: '依據上期課程檢討結果，本期課程實際執行改善之具體佐證',
+  },
+  {
+    id: 'exam_photo',         name: '筆試照片或評量照片',       icon: '✏️', difficulty: 5, maps: [17],
+    unit: '學系',
+    desc: '學員進行筆試或其他形式評量之現場照片，佐證評量機制確實執行',
+  },
+  {
+    id: 'cert_count_proof',   name: '證照統計人數證明',         icon: '📊', difficulty: 4, maps: [17],
+    unit: '學系',
+    desc: '學員通過證照考試之人數統計資料，用以呈現訓練成果',
+  },
+  {
+    id: 'employment_proof',   name: '就業證明',                 icon: '💼', difficulty: 5, maps: [17, 18],
+    unit: '學系',
+    desc: '學員結訓後取得就業之證明文件，說明訓練成效直接帶動就業成果',
+  },
+  {
+    id: 'student_thanks',     name: '學員感謝函',               icon: '💌', difficulty: 5, maps: [17, 18],
+    unit: '學系',
+    desc: '學員主動撰寫感謝信函，表達對課程或培訓師之肯定',
+  },
+  {
+    id: 'rehire_lecturer',    name: '學員表現優異回聘講師案例', icon: '🌟', difficulty: 5, maps: [17, 18],
+    unit: '學系',
+    desc: '學員因在課程中表現優異而受邀回聘為講師之案例紀錄',
+  },
+  {
+    id: 'cert_pass_rate',     name: '證照通過率高於業界',       icon: '🏅', difficulty: 5, maps: [17, 18],
+    unit: '學系',
+    desc: '學院學員證照通過率與業界平均比較，佐證訓練品質高於業界水準',
+  },
+  {
+    id: 'promotion_proof',    name: '學員職務晉升佐證',         icon: '🚀', difficulty: 5, maps: [17, 18],
+    unit: '學系',
+    desc: '學員結訓後職務晉升之佐證文件，說明訓練成果有效移轉至工作績效',
+  },
+  {
+    id: 'industry_collab_photo', name: '產官學研的合作照片',    icon: '🤝', difficulty: 5, maps: [19],
+    unit: '培發',
+    desc: '與產業界、政府機關、學術機構或研究單位合作之現場照片，呈現學院市場評價與合作廣度',
+  },
 ];
 
 // 初始已上傳的幾筆（模擬已有進度，讓地圖不是全空）

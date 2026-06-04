@@ -2,9 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "TTQS Game",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /Users/lolo/Desktop/TTQS-game && python3 -m http.server 8765"],
+      "name": "ttqs-game",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765"],
+      "cwd": "/Users/lolo/Desktop/TTQS-game",
       "port": 8765,
       "autoPort": false
     }
