@@ -9,7 +9,7 @@ const STAGES = [
     color: '#4ea8de',
     emoji: '🗺️',
     desc: '了解需求、訂目標、做規劃',
-    indicators: [1, 2, 3, 4, 5],
+    indicators: [1, 2, 3, 4, 5, 6],
   },
   {
     id: 'D1',
@@ -18,7 +18,7 @@ const STAGES = [
     color: '#b85fff',
     emoji: '🎨',
     desc: '設計課程內容與學習活動',
-    indicators: [6, 7, 8, 9],
+    indicators: [7, 8, 9, 10, 11],
   },
   {
     id: 'D2',
@@ -27,7 +27,7 @@ const STAGES = [
     color: '#7fd858',
     emoji: '⚔️',
     desc: '讓學員真的來上課',
-    indicators: [10, 11, 12, 13],
+    indicators: [12, 13, 14],
   },
   {
     id: 'R',
@@ -36,7 +36,7 @@ const STAGES = [
     color: '#ffd23f',
     emoji: '🔍',
     desc: '檢核有沒有照計畫走',
-    indicators: [14, 15, 16],
+    indicators: [15, 16],
   },
   {
     id: 'O',
@@ -60,19 +60,19 @@ const INDICATORS = [
   { id: 5,  stage: 'P',  name: '訓練目標連結',       plain: '課程有對齊公司五大策略主軸',     difficulty: 4 },
 
   // D1: 課程設計 (6-9)
-  { id: 6,  stage: 'D1', name: '人員技能',           plain: '說明學院培訓師的專業以及學院學系如何輔以培訓師所需的訓練',       difficulty: 2 },
+  { id: 6,  stage: 'P', name: '人員技能',           plain: '說明學院培訓師的專業以及學院學系如何輔以培訓師所需的訓練',       difficulty: 2 },
   { id: 7,  stage: 'D1', name: '需求設計',           plain: '用一個班說明：資料蒐集、職能分析（GAP 在哪）、需求訪談紀錄、需求調查，以及課程規劃會議或課程計畫書',     difficulty: 5 },
   { id: 8,  stage: 'D1', name: '課程設計',           plain: '以 ADDIE 揭示一門課程規劃的流程：學程或專案計畫書 → 開班計畫表 → 學員課前提問（並融入講師教學的例子）→ 學程品質檢核表 → 評量學員成果 → L1～L4 滿意度調查 → 檢討報告 → 下次精進',       difficulty: 5 },
   { id: 9,  stage: 'D1', name: '利益關係人',         plain: '從 PDDRO 全流程檢視：需求窗口、學員、廠商、行政、老師、老闆、政府官員等利益關係人有參與的環節，都可放佐證，有照片更好',     difficulty: 4 },
 
   // D2: 課程執行 (10-13)
-  { id: 10, stage: 'D2', name: '訓練管理',           plain: '師資、教材、採購有完整制度',     difficulty: 4 },
-  { id: 11, stage: 'D2', name: '需求與目標結合',     plain: '課程目標確實對應委訓需求',       difficulty: 4 },
+  { id: 10, stage: 'D1', name: '訓練管理',           plain: '師資、教材、採購有完整制度',     difficulty: 4 },
+  { id: 11, stage: 'D1', name: '需求與目標結合',     plain: '課程目標確實對應委訓需求',       difficulty: 4 },
   { id: 12, stage: 'D2', name: '訓練執行',           plain: '從招生、教學到教材完整執行',     difficulty: 3 },
   { id: 13, stage: 'D2', name: '學習成果移轉',       plain: '上完課有考照輔導或學以致用機制', difficulty: 4 },
 
   // R: 課後查核 (14-16)
-  { id: 14, stage: 'R',  name: '系統化',             plain: '有系統做行銷、採購與訓練管理',   difficulty: 2 },
+  { id: 14, stage: 'D2',  name: '系統化',             plain: '有系統做行銷、採購與訓練管理',   difficulty: 2 },
   { id: 15, stage: 'R',  name: '訓練紀錄管理',       plain: '訓練資料有統一保存與查詢機制',   difficulty: 2 },
   { id: 16, stage: 'R',  name: '異常風險',           plain: '突發狀況有通知學員並妥善應變',   difficulty: 3 },
 
