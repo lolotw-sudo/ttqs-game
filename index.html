@@ -175,7 +175,9 @@
 
       // Firebase 即時同步（含 localStorage 一次性遷移）
       useEffect(() => {
-        window.__playersRef.on('value', snapshot => {
+        const authUnsub = window.__auth.onAuthStateChanged(user => {
+          if (!user) return;  // 等匿名登入完成後才掛監聽，否則規則 auth!=null 會回 permission_denied
+          window.__playersRef.on('value', snapshot => {
           const val = snapshot.val();
           if (val === null) {
             try {
@@ -229,17 +231,21 @@
           console.error('Firebase DB error:', err);
           setDbError(err.message || String(err));
         });
-        return () => window.__playersRef.off('value');
+        });
+        return () => { authUnsub(); window.__playersRef.off('value'); };
       }, []);
 
       // customTypes 即時同步
       useEffect(() => {
-        window.__customTypesRef.on('value', snapshot => {
-          const val = snapshot.val() || {};
-          window.__customTypes = val;
-          setCustomTypes(Object.values(val));
+        const authUnsub = window.__auth.onAuthStateChanged(user => {
+          if (!user) return;
+          window.__customTypesRef.on('value', snapshot => {
+            const val = snapshot.val() || {};
+            window.__customTypes = val;
+            setCustomTypes(Object.values(val));
+          });
         });
-        return () => window.__customTypesRef.off('value');
+        return () => { authUnsub(); window.__customTypesRef.off('value'); };
       }, []);
 
       // 切換畫面時捲回頂部
